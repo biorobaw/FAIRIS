@@ -1,0 +1,44 @@
+#VRML_SIM R2023a utf8
+
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023a/projects/objects/backgrounds/protos/TexturedBackground.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023a/projects/objects/backgrounds/protos/TexturedBackgroundLight.proto"
+IMPORTABLE EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023a/projects/robots/husarion/rosbot/protos/Rosbot.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023a/projects/devices/orbbec/protos/Astra.proto"
+IMPORTABLE EXTERNPROTO "../protos/Obstical.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023a/projects/objects/floors/protos/Floor.proto"
+
+WorldInfo {
+}
+Viewpoint {
+  orientation -0.5773502691896257 0.5773502691896257 0.5773502691896257 2.0943245915045035
+  position -0.00010545582553084804 -0.0003509914598450224 18.194536555613798
+}
+TexturedBackground {
+}
+TexturedBackgroundLight {
+}
+Floor {
+  name "Maze Floor"
+  tileSize 1 1
+}
+DEF Agent Rosbot {
+  hidden position_0_0 -7.828907654544355e-08
+  hidden position_0_1 -7.83800333867261e-08
+  hidden position_0_2 -7.676680810786305e-08
+  hidden position_0_3 -7.685780504872703e-08
+  hidden rotation_2 0 -1 0 7.884953353001448e-08
+  hidden rotation_3 0 -1 0 7.884953353001448e-08
+  hidden rotation_4 0 -0.9999999999999999 0 7.884953353001448e-08
+  hidden rotation_5 0 -1 0 7.884953353001448e-08
+  translation 1.5461388006386006e-12 -7.947315605084937e-10 -0.0005625852492290306
+  rotation -1.5841375738446724e-05 1.5960034022612554e-05 0.9999999997471639 1.5700000002450407
+  controller "<extern>"
+  supervisor TRUE
+  cameraSlot [
+    GPS {
+    }
+    Astra {
+      name "camera"
+    }
+  ]
+}
