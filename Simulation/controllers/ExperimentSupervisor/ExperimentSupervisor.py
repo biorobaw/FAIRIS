@@ -3,7 +3,7 @@
 from Simulation.libraries.RosBot import RosBot
 
 
-maze_file = 'worlds/mazes/experiment2/WM00.xml'
+maze_file = 'worlds/mazes/experiment2/WM10.xml'
 
 # create the robot/supervisor instance.
 robot = RosBot()
