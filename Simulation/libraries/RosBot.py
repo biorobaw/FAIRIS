@@ -1,8 +1,22 @@
 import math
 import operator
 import numpy as np
-from controller import Supervisor
+from random import *
+from controller import Supervisor, Display
 from Simulation.libraries.Evironment import *
+import matplotlib.pyplot as plt
+
+action_set = {
+    0 : [0,.8],
+    1 : [45, .8],
+    2 : [90,.8],
+    3 : [135, .8],
+    4 : [180, .8],
+    5 : [225, .8],
+    6 : [270, .8],
+    7 : [315, .8],
+}
+
 
 # Function to calculate the angle and distance between two points (x1,y1) and (x2,y2)
 def calculate_motion_vector(x1,y1,x2,y2):
@@ -22,6 +36,10 @@ class RosBot(Supervisor):
 
         # Inherent from Webots Robot Class: https://cyberbotics.com/doc/reference/robot
         self.experiment_supervisor = Supervisor()
+
+        # Add a display to plot the place cells as they are generated
+        self.pc_display = self.experiment_supervisor.getDevice('Place Cell Display')
+        self.pc_display.setOpacity(1.0)
 
         # Sets Supervisor Root Nodes
         self.root_node = self.experiment_supervisor.getRoot()
@@ -114,6 +132,11 @@ class RosBot(Supervisor):
     def sensor_calibration(self):
         while self.experiment_supervisor.step(self.timestep) != -1:
             break
+
+    def get_robot_pose(self):
+        current_pose = self.gps.getValues()
+        return current_pose[0], current_pose[1], self.get_bearing()
+
     # Sets all motors speed to 0
     def stop(self):
         for motor in self.all_motors:
@@ -243,6 +266,11 @@ class RosBot(Supervisor):
         #         self.stop()
         #         break
 
+    def preform_random_action(self):
+        random_action = randint(0, 7)
+        random_action =  action_set.get(random_action)
+        self.rotate_to(random_action[0])
+        self.move_forward(500*random_action[1])
     # Supervisor Functions: allows robot to control the simulation
 
     # Takes in a xml maze file and creates the walls, starting locations, and goal locations
@@ -267,3 +295,15 @@ class RosBot(Supervisor):
         starting_position = self.maze.get_random_starting_position()
         self.teleport_robot(starting_position.x,starting_position.y)
 
+
+    # Plots Place cells and shows them on the Display
+    def update_pc_display(self):
+        fig, ax = plt.subplots(figsize=(2, 4), facecolor='lightskyblue',
+                               layout='constrained')
+        fig.suptitle('Figure')
+        ax.set_title('Axes', loc='left', fontstyle='oblique', fontsize='medium')
+        fig.savefig('DataCache/temp.png')
+        while self.experiment_supervisor.step(self.timestep) != -1:
+            ir = self.pc_display.imageLoad('DataCache/temp.png')
+            self.pc_display.imagePaste(ir,0,0,True)
+            break
