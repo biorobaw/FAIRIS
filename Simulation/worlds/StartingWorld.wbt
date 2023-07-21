@@ -6,16 +6,18 @@ IMPORTABLE EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R20
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023a/projects/devices/orbbec/protos/Astra.proto"
 IMPORTABLE EXTERNPROTO "../protos/Obstical.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023a/projects/objects/floors/protos/Floor.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023a/projects/devices/slamtec/protos/RpLidarA2.proto"
 
 WorldInfo {
 }
 Viewpoint {
-  orientation -0.5773502691896257 0.5773502691896257 0.5773502691896257 2.0943245915045035
-  position -0.00010545582553084804 -0.0003509914598450224 18.194536555613798
+  orientation -0.5773496732541711 0.5773495994669443 0.5773515348456788 2.094325818751358
+  position -0.00010545582553089794 -0.00035099145984507363 18.194536555613798
 }
 TexturedBackground {
 }
 TexturedBackgroundLight {
+  luminosity 1.1
 }
 Floor {
   name "Maze Floor"
@@ -35,10 +37,20 @@ DEF Agent Rosbot {
   controller "<extern>"
   supervisor TRUE
   cameraSlot [
-    GPS {
-    }
     Astra {
       name "camera"
+    }
+    Display {
+      name "Place Cell Display"
+      width 200
+      height 400
+    }
+  ]
+  lidarSlot [
+    RpLidarA2 {
+      name "lidar"
+    }
+    GPS {
     }
   ]
 }

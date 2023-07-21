@@ -5,8 +5,9 @@ sceneTreePerspectives: 000000ff00000001000000030000001e000000c0000000fa010000000
 maximizedDockId: -1
 centralWidgetVisible: 1
 orthographicViewHeight: 1
-textFiles: 0 "controllers/sandbox/sandbox.py"
+textFiles: 0 "../../../../../Users/titonka/FAIRIS/Simulation/controllers/sandbox/sandbox.py"
 globalOptionalRendering: DistanceSensorRays::LidarRaysPaths
 consoles: Console:All:All
+renderingDevicePerspectives: Rosbot:Place Cell Display;1;4.57813;7.25069e-09;0.166052
 renderingDevicePerspectives: Rosbot:camera depth;1;0.460417;0.511204;0.00221402
 renderingDevicePerspectives: Rosbot:camera rgb;1;0.45625;0;0
