@@ -30,17 +30,17 @@ heading_to_relative_distances = {
 
 class RelativeDistances:
     def __init__(self,lidar_range_image):
-        temp = [lidar_range_image[-50:], lidar_range_image[0:50]]
+        temp = [lidar_range_image[-75:], lidar_range_image[0:75]]
         self.front_distanaces = []
         for r in temp:
             self.front_distanaces += r
-        self.front_right_distances = lidar_range_image[50:150]
-        self.right_distances = lidar_range_image[150:250]
-        self.rear_right_distances = lidar_range_image[250:350]
-        self.rear_distances = lidar_range_image[350:450]
-        self.rear_left_distances = lidar_range_image[450:550]
-        self.left_distances = lidar_range_image[550:650]
-        self.front_left_distances = lidar_range_image[650:750]
+        self.front_right_distances = lidar_range_image[25:175]
+        self.right_distances = lidar_range_image[125:275]
+        self.rear_right_distances = lidar_range_image[225:375]
+        self.rear_distances = lidar_range_image[325:475]
+        self.rear_left_distances = lidar_range_image[425:575]
+        self.left_distances = lidar_range_image[525:675]
+        self.front_left_distances = lidar_range_image[625:775]
         self.distance_bins = [self.front_distanaces,
                               self.front_right_distances,
                               self.right_distances,
@@ -313,23 +313,21 @@ class RosBot(Supervisor):
             print("cant preform action")
 
     def preform_action(self,action_index):
-        valid_flag = self.check_if_action_is_possible(action_index)
-        if valid_flag:
-            random_action = action_set.get(action_index)
-            self.rotate_to(random_action[0])
-            self.move_forward(500 * random_action[1])
+        action = action_set.get(action_index)
+        self.rotate_to(action[0])
+        if self.check_if_action_is_possible():
+            self.move_forward(500 * action[1])
         else:
             print("cant preform action")
 
-    def check_if_action_is_possible(self,action_index):
+    def check_if_action_is_possible(self):
+        min_action_distance = .5
         while self.experiment_supervisor.step(self.timestep) != -1:
-            relative_distances = RelativeDistances(lidar_range_image=self.lidar.getRangeImage())
-            available_actions = []
-            for bin in relative_distances.distance_bins:
-                available_actions.append(min(bin) > .6)
-            bin_index = (self.get_closest_action_index()- action_index)%8
-            break
-        return available_actions[bin_index]
+            if (min(self.lidar.getRangeImage()[350:450]) > min_action_distance):
+                return True
+            else:
+                return False
+
 
     # Supervisor Functions: allows robot to control the simulation
 
