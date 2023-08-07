@@ -36,14 +36,14 @@ Once in the terminal session or command shell, navigate to the `setup` directory
 
 ### MacOS and Linux
 ```shell
-foo@bar: FAIRIS $ cd setup
-foo@bar: setup $ python3 setup.py
+FAIRIS $ cd setup
+setup $ python3 setup.py
 ```
 
 ### Windows
 ```shell
-foo@bar: FAIRIS $ cd setup
-foo@bar: setup $ python setup.py
+FAIRIS % cd setup
+setup % python setup.py
 ```
 
 Running the `setup.py` script will create a Python virtual environment (venv) and install all the necessary Python libraries to run FAIRIS. The script will also configure Webots so that any additional libraries created by the user can be imported and utilized.
@@ -62,7 +62,7 @@ For detailed instructions on configuring PyCharm to integrate with Webots, refer
 
 To test if FAIRIS has been set up properly, follow these steps:
 
-1. Launch Webots and open the world file located in `FAIRIS -> WebotsSim -> worlds -> StartingWorld.wbt`.
+1. Launch Webots and open the world file located in `FAIRIS -> Simulation -> worlds -> StartingWorld.wbt`.
 2. Once Webots loads the world, you should see the Example controller running, which adds walls and places the robot in a starting location.
 3. The robot will perform 8 actions, after which the simulation will reset.
 4. By selecting the play button on the Webots interface, you will see this process repeat.
