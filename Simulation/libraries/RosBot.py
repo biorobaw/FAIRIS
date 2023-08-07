@@ -7,16 +7,48 @@ from Simulation.libraries.Evironment import *
 import matplotlib.pyplot as plt
 
 action_set = {
-    0 : [0,.8],
+    2 : [0,.8],
     1 : [45, .8],
-    2 : [90,.8],
-    3 : [135, .8],
-    4 : [180, .8],
+    0 : [90,.8],
+    7 : [135, .8],
+    6 : [180, .8],
     5 : [225, .8],
-    6 : [270, .8],
-    7 : [315, .8],
+    4 : [270, .8],
+    3 : [315, .8],
 }
 
+heading_to_relative_distances = {
+    0 : 2,
+    45 : 1,
+    90 : 0,
+    135 : 7,
+    180 : 6,
+    225 : 5,
+    270 : 4,
+    315 : 3,
+}
+
+class RelativeDistances:
+    def __init__(self,lidar_range_image):
+        temp = [lidar_range_image[-50:], lidar_range_image[0:50]]
+        self.front_distanaces = []
+        for r in temp:
+            self.front_distanaces += r
+        self.front_right_distances = lidar_range_image[50:150]
+        self.right_distances = lidar_range_image[150:250]
+        self.rear_right_distances = lidar_range_image[250:350]
+        self.rear_distances = lidar_range_image[350:450]
+        self.rear_left_distances = lidar_range_image[450:550]
+        self.left_distances = lidar_range_image[550:650]
+        self.front_left_distances = lidar_range_image[650:750]
+        self.distance_bins = [self.front_distanaces,
+                              self.front_right_distances,
+                              self.right_distances,
+                              self.rear_right_distances,
+                              self.rear_distances,
+                              self.rear_left_distances,
+                              self.left_distances,
+                              self.front_left_distances]
 
 # Function to calculate the angle and distance between two points (x1,y1) and (x2,y2)
 def calculate_motion_vector(x1,y1,x2,y2):
@@ -158,7 +190,10 @@ class RosBot(Supervisor):
         bearing = (rad - math.pi/2) / math.pi * 180.0
         if bearing < 0.0:
             bearing += 360.0
-        return round(bearing,3)
+        return round(bearing)
+
+    def get_closest_action_index(self):
+        return int((self.get_bearing()//45))
 
     # Reads current encoder readings and return an array of encoder positions:
     #   [front_left, front_right, rear_right, rear_right]
@@ -220,7 +255,7 @@ class RosBot(Supervisor):
             motor.setVelocity(velocity)
 
     # Rotates the robot in place to face end_bearing and stops within margin_error (DEFAULT: +-.001)
-    def rotate_to(self, end_bearing, margin_error = .001):
+    def rotate_to(self, end_bearing, margin_error = .00001):
         while self.experiment_supervisor.step(self.timestep) != -1:
             self.rotation_PID(end_bearing)
             if end_bearing - margin_error <= self.get_bearing() <= end_bearing + margin_error:
@@ -268,10 +303,36 @@ class RosBot(Supervisor):
 
     def preform_random_action(self):
         random_action = randint(0, 7)
-        random_action =  action_set.get(random_action)
-        self.rotate_to(random_action[0])
-        self.move_forward(500*random_action[1])
+        print(random_action)
+        valid_flag = self.check_if_action_is_possible(random_action)
+        if valid_flag:
+            random_action =  action_set.get(random_action)
+            self.rotate_to(random_action[0])
+            self.move_forward(500*random_action[1])
+        else:
+            print("cant preform action")
+
+    def preform_action(self,action_index):
+        valid_flag = self.check_if_action_is_possible(action_index)
+        if valid_flag:
+            random_action = action_set.get(action_index)
+            self.rotate_to(random_action[0])
+            self.move_forward(500 * random_action[1])
+        else:
+            print("cant preform action")
+
+    def check_if_action_is_possible(self,action_index):
+        while self.experiment_supervisor.step(self.timestep) != -1:
+            relative_distances = RelativeDistances(lidar_range_image=self.lidar.getRangeImage())
+            available_actions = []
+            for bin in relative_distances.distance_bins:
+                available_actions.append(min(bin) > .6)
+            bin_index = (self.get_closest_action_index()- action_index)%8
+            break
+        return available_actions[bin_index]
+
     # Supervisor Functions: allows robot to control the simulation
+
 
     # Takes in a xml maze file and creates the walls, starting locations, and goal locations
     def load_environment(self,maze_file):

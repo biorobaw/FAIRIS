@@ -1,8 +1,17 @@
 import math
-import threading
+from threading import Thread
 
 from sklearn.neighbors import KDTree
 
+
+class PlaceCellTread(Thread):
+    def __init__(self,pc,robot_x,robot_y):
+        Thread.__init__(self)
+        self.pc = pc
+        self.robot_x = robot_x
+        self.robot_y = robot_y
+    def run(self):
+        self.pc.calculate_activation(self.robot_x,self.robot_y)
 
 class PlaceCellGenParm:
     def __init__(self,num_of_pc = 1, pc_scales = [.16]):
@@ -68,17 +77,20 @@ class PlaceCellNetwork:
         pc.calculate_activation(robot_x,robot_y)
 
     def calculate_total_pc_activation(self, robot_x, robot_y):
-        # TODO: ask if this would be better long term
-        # pc_activation_threads = []
-        # for pc in self.pc_list:
-        #     pc_activation_threads.append(threading.Thread(target=self.calculate_single_pc_activation,args=(pc,robot_x,robot_y)))
-        # for t in pc_activation_threads:
-        #     t.start()
-        # for t in pc_activation_threads:
-        #     t.join()
-        # print(robot_x,robot_y)
+        # Threading approch
+        pc_activation_threads = []
         for pc in self.pc_list:
-            pc.calculate_activation(robot_x,robot_y)
+            t = PlaceCellTread(pc,robot_x,robot_y)
+            pc_activation_threads.append(t)
+            t.start()
+        for t in pc_activation_threads:
+            t.join()
+            self.pc_list[t.pc.id] = t.pc
+        
+
+        # Naive Approach
+        # for pc in self.pc_list:
+        #     pc.calculate_activation(robot_x,robot_y)
 
     def print_pc_activations(self):
         for pc in self.pc_list:
