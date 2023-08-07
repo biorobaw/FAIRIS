@@ -163,4 +163,4 @@ cython_debug/
 
 # Dev code
 !Simulation/controllers/Example
-Simulation/controllers/ExperimentSupervisor
+Simulation/controllers/*
