@@ -162,5 +162,5 @@ cython_debug/
 #.idea/
 
 # Dev code
-!Simulation/controllers/ExperimentSupervisor/
+!Simulation/controllers/Example/
 Simulation/controllers/*
