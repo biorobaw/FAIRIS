@@ -6,7 +6,7 @@ from BiologyTools.PlaceCellLibrary import PlaceCellNetwork
 from Simulation.libraries.RosBot import RosBot
 
 
-maze_file = 'worlds/mazes/experiment2/WM20.xml'
+maze_file = 'worlds/mazes/Samples/LidarTest.xml'
 
 # create the robot/supervisor instance.
 robot = RosBot()
