@@ -12,8 +12,8 @@ EXTERNPROTO "../protos/ROSbot/ROSbot_Lidar.proto"
 WorldInfo {
 }
 Viewpoint {
-  orientation -0.5773483729639887 0.5773487070940025 0.5773537274953012 2.094325684440625
-  position -0.00038921434063343696 -0.00038919849624308167 14.165933751654169
+  orientation -0.5773466778819134 0.5773466060513335 0.5773575235672647 2.0943301017787865
+  position -0.000389214340633548 -0.00038919849624319963 14.165933751654173
 }
 TexturedBackground {
 }
@@ -31,7 +31,7 @@ DEF Agent Rosbot {
   supervisor TRUE
   cameraSlot [
     Astra {
-      translation 0.04 0 -0.065
+      translation 0.08 0 -0.055
       name "camera"
     }
     Display {
@@ -41,7 +41,7 @@ DEF Agent Rosbot {
     }
   ]
   lidarSlot [
-    ROSbot_Lidar {
+    ROSBOT_Lidar {
       translation -0.02 0 0.096
       name "lidar"
     }
