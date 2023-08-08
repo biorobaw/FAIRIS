@@ -279,7 +279,7 @@ class RosBot(Supervisor):
             self.forward_motion_with_encoder_PID(distance, starting_encoder_postiontion)
             if (distance - margin_error <=
                     self.calculate_wheel_distance_traveled(starting_encoder_postiontion) <= distance + margin_error) \
-                    or (min(self.lidar.getRangeImage()[350:450]) < .2):
+                    or (min(self.lidar.getRangeImage()[300:500]) < .2):
                 self.stop()
                 break
 
