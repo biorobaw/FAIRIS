@@ -160,7 +160,7 @@ class RosBot(Supervisor):
 
         self.sensor_calibration()
 
-    # Preforms one timestep to update all sensors should be used when initilizing robot and after teleport
+    # Preforms one timestep to update all sensors should be used when initializing robot and after teleport
     def sensor_calibration(self):
         while self.experiment_supervisor.step(self.timestep) != -1:
             break
@@ -273,12 +273,23 @@ class RosBot(Supervisor):
         self.rotate_to(end_bearing, margin_error=margin_error)
 
     # Moves the robot forward in a straight line by the amount distance (in mm)
-    def move_forward(self, distance, margin_error=.01):
+    def move_forward_with_PID(self, distance, margin_error=.01):
         starting_encoder_postiontion = self.get_encoder_readings()
         while self.experiment_supervisor.step(self.timestep) != -1:
             self.forward_motion_with_encoder_PID(distance, starting_encoder_postiontion)
             if (distance - margin_error <=
                     self.calculate_wheel_distance_traveled(starting_encoder_postiontion) <= distance + margin_error) \
+                    or (min(self.lidar.getRangeImage()[300:500]) < .2):
+                self.stop()
+                break
+
+    # Moves the robot forward in a straight line by the amount distance (in mm)
+    def move_forward_no_PID(self, distance, velocity= 20, margin_error=.01):
+        starting_encoder_postiontion = self.get_encoder_readings()
+        while self.experiment_supervisor.step(self.timestep) != -1:
+            self.go_forward(velocity=velocity)
+            if (distance - margin_error <=
+                self.calculate_wheel_distance_traveled(starting_encoder_postiontion) <= distance + margin_error) \
                     or (min(self.lidar.getRangeImage()[300:500]) < .2):
                 self.stop()
                 break
@@ -291,22 +302,30 @@ class RosBot(Supervisor):
                 motion_vector[0] + margin_error):
             self.rotate_to(motion_vector[0])
         motion_vector = self.calculate_robot_motion_vector(x, y)
-        self.move_forward(motion_vector[1])
+        self.move_forward_with_PID(motion_vector[1])
 
     def preform_random_action(self):
         random_action_index = randint(0, 7)
         if self.check_if_action_is_possible(action_index=random_action_index):
             random_action = action_set.get(random_action_index)
             self.rotate_to(random_action[0])
-            self.move_forward(500 * random_action[1])
+            self.move_forward_with_PID(500 * random_action[1])
         else:
             print("cant preform action")
 
-    def preform_action(self, action_index):
+    def preform_action_with_PID(self, action_index):
         action = action_set.get(action_index)
         if self.check_if_action_is_possible(action_index=action_index):
             self.rotate_to(action[0])
-            self.move_forward(500 * action[1])
+            self.move_forward_with_PID(500 * action[1])
+        else:
+            print("cant preform action")
+
+    def preform_action_no_PID(self, action_index):
+        action = action_set.get(action_index)
+        if self.check_if_action_is_possible(action_index=action_index):
+            self.rotate_to(action[0])
+            self.move_forward_no_PID(500 * action[1])
         else:
             print("cant preform action")
 
