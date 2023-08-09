@@ -313,7 +313,7 @@ class RosBot(Supervisor):
         else:
             print("cant preform action")
 
-    def preform_action_with_PID(self, action_index):
+    def perform_action_with_PID(self, action_index):
         action = action_set.get(action_index)
         if self.check_if_action_is_possible(action_index=action_index):
             self.rotate_to(action[0])
@@ -321,7 +321,7 @@ class RosBot(Supervisor):
         else:
             print("cant preform action")
 
-    def preform_action_no_PID(self, action_index):
+    def perform_action_no_PID(self, action_index):
         action = action_set.get(action_index)
         if self.check_if_action_is_possible(action_index=action_index):
             self.rotate_to(action[0])
