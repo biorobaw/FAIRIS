@@ -1,10 +1,10 @@
-import math
 import operator
-import numpy as np
-from random import *
-from controller import Supervisor, Display
-from Simulation.libraries.Evironment import *
+
 import matplotlib.pyplot as plt
+import numpy as np
+
+from Simulation.libraries.Environment import *
+from controller import Supervisor
 
 action_set = {
     0: [0, .8],
@@ -20,14 +20,6 @@ action_set = {
 
 class RelativeDistances:
     def __init__(self, lidar_range_image):
-        # print("Front: ", self.lidar.getRangeImage()[400])
-        # print("fr: ", self.lidar.getRangeImage()[500])
-        # print("r", self.lidar.getRangeImage()[600])
-        # print("rr", self.lidar.getRangeImage()[700])
-        # print("r", self.lidar.getRangeImage()[0])
-        # print("lr", self.lidar.getRangeImage()[100])
-        # print("l", self.lidar.getRangeImage()[200])
-        # print("fl", self.lidar.getRangeImage()[300])
         temp = [lidar_range_image[-60:], lidar_range_image[0:60]]
         self.rear_distances = []
         for r in temp:
@@ -81,7 +73,7 @@ class RosBot(Supervisor):
 
         # Physical Robot Specifications
         self.wheel_radius = 42.5  # mm
-        self.axel_diameter = 192  # mm
+        self.axel_length = 265  # mm
         self.robot_radius = 308.6 / 2  # mm
 
         # Define all systems and makes them class atributes
@@ -98,7 +90,7 @@ class RosBot(Supervisor):
                            self.rear_right_motor]
         self.max_motor_velocity = self.rear_left_motor.getMaxVelocity()
 
-        # Initilize robot's motors
+        # Initialize robot's motors
         for motor in self.all_motors:
             motor.setPosition(float('inf'))
             motor.setVelocity(0.0)
@@ -113,7 +105,7 @@ class RosBot(Supervisor):
                              self.rear_left_encoder,
                              self.rear_right_encoder]
 
-        # Initilize robot's encoders
+        # Initialize robot's encoders
         for encoder in self.all_encoders:
             encoder.enable(self.timestep)
 
@@ -200,10 +192,10 @@ class RosBot(Supervisor):
     def get_encoder_readings(self):
         return [readings.getValue() for readings in self.all_encoders]
 
-    # Calculates the average mm all the wheels have traveled from a realative starting encoder reading
-    def calculate_wheel_distance_traveled(self, starting_encoder_postiontion):
+    # Calculates the average mm all the wheels have traveled from a relative starting encoder reading
+    def calculate_wheel_distance_traveled(self, starting_encoder_position):
         current_encoder_readings = self.get_encoder_readings()
-        differences = list(map(operator.sub, current_encoder_readings, starting_encoder_postiontion))
+        differences = list(map(operator.sub, current_encoder_readings, starting_encoder_position))
         average_differences = sum(differences) / len(differences)
         average_distance = average_differences * self.wheel_radius
         return average_distance
@@ -238,8 +230,8 @@ class RosBot(Supervisor):
             self.rear_right_motor.setVelocity(1 * velocity)
 
     # Sets motor speeds using PID to move the robot forward a desired distance in mm
-    def forward_motion_with_encoder_PID(self, travel_distance, starting_encoder_postiontion, K_p=.2):
-        delta = travel_distance - self.calculate_wheel_distance_traveled(starting_encoder_postiontion)
+    def forward_motion_with_encoder_PID(self, travel_distance, starting_encoder_position, K_p=.2):
+        delta = travel_distance - self.calculate_wheel_distance_traveled(starting_encoder_position)
         velocity = self.velocity_saturation(K_p * delta)
         for motor in self.all_motors:
             motor.setVelocity(velocity)
@@ -274,28 +266,28 @@ class RosBot(Supervisor):
 
     # Moves the robot forward in a straight line by the amount distance (in mm)
     def move_forward_with_PID(self, distance, margin_error=.01):
-        starting_encoder_postiontion = self.get_encoder_readings()
+        starting_encoder_position = self.get_encoder_readings()
         while self.experiment_supervisor.step(self.timestep) != -1:
-            self.forward_motion_with_encoder_PID(distance, starting_encoder_postiontion)
+            self.forward_motion_with_encoder_PID(distance, starting_encoder_position)
             if (distance - margin_error <=
-                    self.calculate_wheel_distance_traveled(starting_encoder_postiontion) <= distance + margin_error) \
+                self.calculate_wheel_distance_traveled(starting_encoder_position) <= distance + margin_error) \
                     or (min(self.lidar.getRangeImage()[300:500]) < .2):
                 self.stop()
                 break
 
     # Moves the robot forward in a straight line by the amount distance (in mm)
-    def move_forward_no_PID(self, distance, velocity= 20, margin_error=.01):
-        starting_encoder_postiontion = self.get_encoder_readings()
+    def move_forward_no_PID(self, distance, velocity=20, margin_error=.01):
+        starting_encoder_position = self.get_encoder_readings()
         while self.experiment_supervisor.step(self.timestep) != -1:
             self.go_forward(velocity=velocity)
             if (distance - margin_error <=
-                self.calculate_wheel_distance_traveled(starting_encoder_postiontion) <= distance + margin_error) \
+                self.calculate_wheel_distance_traveled(starting_encoder_position) <= distance + margin_error) \
                     or (min(self.lidar.getRangeImage()[300:500]) < .2):
                 self.stop()
                 break
 
     # Moves the robot to the point (x,y) by rotating and then moving in a straight line
-    def move_to_xy(self, x, y, margin_error=.01):
+    def move_to_xy_with_PID(self, x, y, margin_error=.01):
         motion_vector = self.calculate_robot_motion_vector(x, y)
         if not (motion_vector[0] - margin_error <=
                 self.get_bearing() <=
@@ -304,7 +296,17 @@ class RosBot(Supervisor):
         motion_vector = self.calculate_robot_motion_vector(x, y)
         self.move_forward_with_PID(motion_vector[1])
 
-    def preform_random_action(self):
+    # Moves the robot to the point (x,y) by rotating and then moving in a straight line
+    def move_to_xy_no_PID(self, x, y, velocity=20, margin_error=.01):
+        motion_vector = self.calculate_robot_motion_vector(x, y)
+        if not (motion_vector[0] - margin_error <=
+                self.get_bearing() <=
+                motion_vector[0] + margin_error):
+            self.rotate_to(motion_vector[0])
+        motion_vector = self.calculate_robot_motion_vector(x, y)
+        self.move_forward_no_PID(motion_vector[1])
+
+    def perform_random_action(self):
         random_action_index = randint(0, 7)
         if self.check_if_action_is_possible(action_index=random_action_index):
             random_action = action_set.get(random_action_index)
@@ -353,12 +355,12 @@ class RosBot(Supervisor):
         self.maze = Maze(maze_file)
         self.obstical_nodes = []
         self.boundry_wall_nodes = []
-        for obsticals in self.maze.obsticals:
+        for obsticals in self.maze.obstacle:
             self.children_field.importMFNodeFromString(-1, obsticals.get_webots_node_string())
-            self.obstical_nodes.append(self.experiment_supervisor.getFromDef('Obstical'))
-        for boundry_wall in self.maze.boundry_walls:
+            self.obstical_nodes.append(self.experiment_supervisor.getFromDef('Obstacle'))
+        for boundry_wall in self.maze.boundary_walls:
             self.children_field.importMFNodeFromString(-1, boundry_wall.get_webots_node_string())
-            self.boundry_wall_nodes.append(self.experiment_supervisor.getFromDef('Obstical'))
+            self.boundry_wall_nodes.append(self.experiment_supervisor.getFromDef('Obstacle'))
 
     # Teleports the robot to the point (x,y,z)
     def teleport_robot(self, x=0.0, y=0.0, z=0.0):
