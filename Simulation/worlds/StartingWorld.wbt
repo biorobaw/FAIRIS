@@ -36,8 +36,8 @@ DEF Agent Rosbot {
     }
     Display {
       name "Place Cell Display"
-      width 200
-      height 400
+      width 500
+      height 1000
     }
   ]
   lidarSlot [
