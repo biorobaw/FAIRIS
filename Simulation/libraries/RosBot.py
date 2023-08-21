@@ -394,12 +394,16 @@ class RosBot(Supervisor):
 
         self.obstical_nodes = []
         self.boundry_wall_nodes = []
-        for obsticals in self.maze.obstacle:
-            self.children_field.importMFNodeFromString(-1, obsticals.get_webots_node_string())
+        self.landmark_nodes = []
+        for obstacles in self.maze.obstacles:
+            self.children_field.importMFNodeFromString(-1, obstacles.get_webots_node_string())
             self.obstical_nodes.append(self.experiment_supervisor.getFromDef('Obstacle'))
-        for boundry_wall in self.maze.boundary_walls:
-            self.children_field.importMFNodeFromString(-1, boundry_wall.get_webots_node_string())
+        for boundary_wall in self.maze.boundary_walls:
+            self.children_field.importMFNodeFromString(-1, boundary_wall.get_webots_node_string())
             self.boundry_wall_nodes.append(self.experiment_supervisor.getFromDef('Obstacle'))
+        for landmark in self.maze.landmarks:
+            self.children_field.importMFNodeFromString(-1, landmark.get_webots_node_string())
+            self.landmark_nodes.append(self.experiment_supervisor.getFromDef('Landmark'))
 
     # Teleports the robot to the point (x,y,z)
     def teleport_robot(self, x=0.0, y=0.0, z=0.0):

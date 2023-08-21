@@ -7,6 +7,8 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023a/project
 IMPORTABLE EXTERNPROTO "../protos/WorldObjects/Obstacle.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023a/projects/objects/floors/protos/Floor.proto"
 IMPORTABLE EXTERNPROTO "../protos/ROSbot/ROSbot_Lidar.proto"
+IMPORTABLE EXTERNPROTO "../protos/ROSbot/ROSbot_Camera.proto"
+IMPORTABLE EXTERNPROTO "../protos/WorldObjects/Landmark.proto"
 
 WorldInfo {
 }
@@ -29,7 +31,7 @@ DEF Agent Rosbot {
   controller "<extern>"
   supervisor TRUE
   cameraSlot [
-    Astra {
+    ROSbot_Camera {
       translation 0.08 0 -0.055
       name "camera"
     }
