@@ -1,5 +1,7 @@
 import math
 from random import *
+from matplotlib import collections as pycol
+import matplotlib.pyplot as plt
 
 from Simulation.libraries.MazeAndPcsParcer import parse_maze
 
@@ -13,6 +15,7 @@ class Maze:
         self.starting_location = []
         self.goal_locations = []
         self.obstacle = []
+        self.walls = []
 
         walls, goals, start_positions = parse_maze(maze_file)
 
@@ -21,6 +24,7 @@ class Maze:
                 self.boundary_walls.append(BoundryWall(row['x1'], row['y1'], row['x2'], row['y2'], id=index))
             else:
                 self.obstacle.append(Obstacle(row['x1'], row['y1'], row['x2'], row['y2'], id=index - 4))
+            self.walls.append([(row['x1'], row['y1']), (row['x2'], row['y2'])])
 
         for index, row in start_positions.iterrows():
             self.starting_location.append(StartingPosition(row['x'], row['y']))
@@ -31,6 +35,16 @@ class Maze:
     # Returns random starting positions
     def get_random_starting_position(self):
         return sample(self.starting_location, 1)[0]
+
+    # Creates a matplotlib plot of the maze
+    def get_maze_figure(self,display_width,display_height):
+        self.maze_figure, self.maze_figure_ax = plt.subplots(figsize=(display_width/100,display_height/100))
+        self.maze_figure_ax.add_collection(pycol.LineCollection(self.walls,linewidths=2))
+        self.maze_figure_ax.set_ylim(-3, 3)
+        self.maze_figure_ax.set_xlim(-2, 2)
+        self.maze_figure_ax.margins(0.1)
+        return self.maze_figure, self.maze_figure_ax
+
 
 
 class Point:
@@ -75,7 +89,7 @@ class BoundryWall:
         return txt.format(x=self.translation[0], y=self.translation[1], z=self.translation[2])
 
     def get_webots_rotation_string(self):
-        txt = 'rotation {x:.2f} {y:.2f} {z:.2f} {theta:.2f}'
+        txt = 'rotation {x:.2f} {y:.2f} {z:.2f} {theta:-.2f}'
         return txt.format(x=self.rotation[0], y=self.rotation[1], z=self.rotation[2], theta=self.rotation[3])
 
     def get_webots_size_string(self):
@@ -104,14 +118,14 @@ class Obstacle:
                             (self.end_point1.y + self.end_point2.y) / 2,
                             self.height / 2]
         theta = math.atan2(self.end_point1.x - self.end_point2.x, self.end_point1.y - self.end_point2.y)
-        self.rotation = [0, 0, 1, theta]
+        self.rotation = [0, 0, 1, math.pi - theta]
 
     def get_webots_translation_string(self):
         txt = 'translation {x:.2f} {y:.2f} {z:.2f}'
         return txt.format(x=self.translation[0], y=self.translation[1], z=self.translation[2])
 
     def get_webots_rotation_string(self):
-        txt = 'rotation {x:.2f} {y:.2f} {z:.2f} {theta:.2f}'
+        txt = 'rotation {x:.2f} {y:.2f} {z:.2f} {theta:-.2f}'
         return txt.format(x=self.rotation[0], y=self.rotation[1], z=self.rotation[2], theta=self.rotation[3])
 
     def get_webots_size_string(self):

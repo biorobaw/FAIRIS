@@ -55,19 +55,15 @@ class PlaceCellNetwork:
         self.pc_coordinates = []
         self.pc_generation_parm = pc_generation_parm
 
-    def add_pc_to_network(self, robot_x, robot_y):
-        if self.pc_generation_parm.num_of_pc == 1:
-            for pc_scale in self.pc_generation_parm.pc_scales:
-                pc_id = len(self.pc_list)
-                self.pc_list.append(PlaceCell(pc_id,robot_x,robot_y,pc_scale))
-                self.pc_coordinates.append((robot_x,robot_y))
-                self.pc_network = KDTree(self.pc_coordinates)
-        else:
-            pass
+    def add_pc_to_network(self, robot_x, robot_y,radius=.1):
+        pc_id = len(self.pc_list)
+        self.pc_list.append(PlaceCell(pc_id, robot_x, robot_y, radius))
+        self.pc_coordinates.append((robot_x, robot_y))
+        self.pc_network = KDTree(self.pc_coordinates)
 
-    def get_num_active_pc(self, robot_x, robot_y):
+    def get_num_active_pc(self, robot_x, robot_y, search_radius=.5):
         if self.pc_network != None:
-            return self.pc_network.query_radius([(robot_x,robot_y)], r=self.pc_generation_parm.pc_scales[0],count_only=True)[0]
+            return self.pc_network.query_radius([(robot_x,robot_y)], r=search_radius,count_only=True)[0]
         else:
             return 0
 
@@ -86,11 +82,7 @@ class PlaceCellNetwork:
         for t in pc_activation_threads:
             t.join()
             self.pc_list[t.pc.id] = t.pc
-        
 
-        # Naive Approach
-        # for pc in self.pc_list:
-        #     pc.calculate_activation(robot_x,robot_y)
 
     def print_pc_activations(self):
         for pc in self.pc_list:

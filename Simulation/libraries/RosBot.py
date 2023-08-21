@@ -1,8 +1,8 @@
 import operator
 
-import matplotlib.pyplot as plt
-import numpy as np
+from matplotlib import patches
 
+from ExperimentTools.utils.DataFunctions import *
 from Simulation.libraries.Environment import *
 from controller import Supervisor
 
@@ -72,9 +72,12 @@ class RosBot(Supervisor):
         self.robot_translation_field = self.robot_node.getField('translation')
 
         # Physical Robot Specifications
-        self.wheel_radius = 42.5  # mm
+        self.wheel_radius = 43  # mm
         self.axel_length = 265  # mm
         self.robot_radius = 308.6 / 2  # mm
+
+        # Experiment Variables
+        self.previous_action_index = -1
 
         # Define all systems and makes them class atributes
         self.timestep = int(self.experiment_supervisor.getBasicTimeStep())
@@ -166,6 +169,16 @@ class RosBot(Supervisor):
         for motor in self.all_motors:
             motor.setVelocity(0)
 
+    def slow_stop(self):
+        while self.experiment_supervisor.step(self.timestep) != -1:
+            current_velocity = self.front_left_motor.getVelocity()
+            if current_velocity > .1:
+                for motor in self.all_motors:
+                    motor.setVelocity(current_velocity / 4)
+            else:
+                self.stop()
+                break
+
     # Sets all motors speed to 0
     def go_forward(self, velocity=1):
         for motor in self.all_motors:
@@ -191,6 +204,10 @@ class RosBot(Supervisor):
     #   [front_left, front_right, rear_right, rear_right]
     def get_encoder_readings(self):
         return [readings.getValue() for readings in self.all_encoders]
+
+    def get_min_lidar_reading(self):
+        self.sensor_calibration()
+        return min(self.lidar.getRangeImage())
 
     # Calculates the average mm all the wheels have traveled from a relative starting encoder reading
     def calculate_wheel_distance_traveled(self, starting_encoder_position):
@@ -230,7 +247,7 @@ class RosBot(Supervisor):
             self.rear_right_motor.setVelocity(1 * velocity)
 
     # Sets motor speeds using PID to move the robot forward a desired distance in mm
-    def forward_motion_with_encoder_PID(self, travel_distance, starting_encoder_position, K_p=.2):
+    def forward_motion_with_encoder_PID(self, travel_distance, starting_encoder_position, K_p=.25):
         delta = travel_distance - self.calculate_wheel_distance_traveled(starting_encoder_position)
         velocity = self.velocity_saturation(K_p * delta)
         for motor in self.all_motors:
@@ -270,9 +287,11 @@ class RosBot(Supervisor):
         while self.experiment_supervisor.step(self.timestep) != -1:
             self.forward_motion_with_encoder_PID(distance, starting_encoder_position)
             if (distance - margin_error <=
-                self.calculate_wheel_distance_traveled(starting_encoder_position) <= distance + margin_error) \
-                    or (min(self.lidar.getRangeImage()[300:500]) < .2):
-                self.stop()
+                    self.calculate_wheel_distance_traveled(starting_encoder_position) <= distance + margin_error):
+                self.slow_stop()
+                break
+            if (min(self.lidar.getRangeImage()[330:470]) < .3):
+                self.slow_stop()
                 break
 
     # Moves the robot forward in a straight line by the amount distance (in mm)
@@ -281,8 +300,10 @@ class RosBot(Supervisor):
         while self.experiment_supervisor.step(self.timestep) != -1:
             self.go_forward(velocity=velocity)
             if (distance - margin_error <=
-                self.calculate_wheel_distance_traveled(starting_encoder_position) <= distance + margin_error) \
-                    or (min(self.lidar.getRangeImage()[300:500]) < .2):
+                    self.calculate_wheel_distance_traveled(starting_encoder_position) <= distance + margin_error):
+                self.stop()
+                break
+            if (min(self.lidar.getRangeImage()[350:450]) < .25):
                 self.stop()
                 break
 
@@ -307,13 +328,17 @@ class RosBot(Supervisor):
         self.move_forward_no_PID(motion_vector[1])
 
     def perform_random_action(self):
-        random_action_index = randint(0, 7)
-        if self.check_if_action_is_possible(action_index=random_action_index):
-            random_action = action_set.get(random_action_index)
-            self.rotate_to(random_action[0])
-            self.move_forward_with_PID(500 * random_action[1])
-        else:
-            print("cant preform action")
+        while True:
+            available_actions = [int(i) for i in self.get_possible_actions()]
+            # Add motion Bias and normalize
+            action_distribution = apply_softmax(add_motion_bias(available_actions, self.previous_action_index))
+            random_action_index = np.random.choice(8, 1, p=action_distribution)[0]
+            if self.check_if_action_is_possible(random_action_index):
+                random_action = action_set.get(random_action_index)
+                self.rotate_to(random_action[0])
+                self.move_forward_with_PID(500 * random_action[1])
+                break
+        self.previous_action_index = random_action_index
 
     def perform_action_with_PID(self, action_index):
         action = action_set.get(action_index)
@@ -331,20 +356,25 @@ class RosBot(Supervisor):
         else:
             print("cant preform action")
 
-    def check_if_action_is_possible(self, action_index=-1):
+    def get_possible_actions(self):
         min_action_distance = .5
         while self.experiment_supervisor.step(self.timestep) != -1:
-            print(min(self.lidar.getRangeImage()))
+            relative_distances = RelativeDistances(lidar_range_image=self.lidar.getRangeImage())
+            available_actions = []
+            for bin in relative_distances.distance_bins:
+                available_actions.append(min(bin) > min_action_distance)
+            return available_actions
+
+    def check_if_action_is_possible(self, action_index=-1):
+        min_action_distance = .45
+        while self.experiment_supervisor.step(self.timestep) != -1:
             if action_index == -1:
-                if min(self.lidar.getRangeImage()[350:450]) > min_action_distance:
+                if min(self.lidar.getRangeImage()[360:460]) > min_action_distance:
                     return True
                 else:
                     return False
             else:
-                relative_distances = RelativeDistances(lidar_range_image=self.lidar.getRangeImage())
-                available_actions = []
-                for bin in relative_distances.distance_bins:
-                    available_actions.append(min(bin) > min_action_distance)
+                available_actions = self.get_possible_actions()
                 bin_index = (self.get_closest_action_index() - action_index) % 8
                 return available_actions[bin_index]
 
@@ -353,6 +383,15 @@ class RosBot(Supervisor):
     # Takes in a xml maze file and creates the walls, starting locations, and goal locations
     def load_environment(self, maze_file):
         self.maze = Maze(maze_file)
+        self.pc_figure, self.pc_figure_ax = self.maze.get_maze_figure(self.pc_display.getWidth(),
+                                                                      self.pc_display.getHeight())
+        self.pc_figure.savefig('DataCache/temp.png')
+
+        while self.experiment_supervisor.step(self.timestep) != -1:
+            ir = self.pc_display.imageLoad('DataCache/temp.png')
+            self.pc_display.imagePaste(ir, 0, 0, True)
+            break
+
         self.obstical_nodes = []
         self.boundry_wall_nodes = []
         for obsticals in self.maze.obstacle:
@@ -373,13 +412,11 @@ class RosBot(Supervisor):
         self.teleport_robot(starting_position.x, starting_position.y)
 
     # Plots Place cells and shows them on the Display
-    def update_pc_display(self):
-        fig, ax = plt.subplots(figsize=(2, 4), facecolor='lightskyblue',
-                               layout='constrained')
-        fig.suptitle('Figure')
-        ax.set_title('Axes', loc='left', fontstyle='oblique', fontsize='medium')
-        fig.savefig('DataCache/temp.png')
-        plt.close(fig)
+    def update_pc_display(self, place_cell):
+        new_pc = patches.Circle((place_cell.center_x, place_cell.center_y), radius=place_cell.radius, fill=False)
+        self.pc_figure_ax.add_patch(new_pc)
+        self.pc_figure_ax.axis('equal')
+        self.pc_figure.savefig('DataCache/temp.png')
         while self.experiment_supervisor.step(self.timestep) != -1:
             ir = self.pc_display.imageLoad('DataCache/temp.png')
             self.pc_display.imagePaste(ir, 0, 0, True)

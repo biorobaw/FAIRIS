@@ -7,7 +7,6 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023a/project
 IMPORTABLE EXTERNPROTO "../protos/WorldObjects/Obstacle.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023a/projects/objects/floors/protos/Floor.proto"
 IMPORTABLE EXTERNPROTO "../protos/ROSbot/ROSbot_Lidar.proto"
-EXTERNPROTO "../protos/ROSbot/ROSbot_Lidar.proto"
 
 WorldInfo {
 }
@@ -36,8 +35,8 @@ DEF Agent Rosbot {
     }
     Display {
       name "Place Cell Display"
-      width 500
-      height 1000
+      width 400
+      height 600
     }
   ]
   lidarSlot [
