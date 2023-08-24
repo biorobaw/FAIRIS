@@ -12,13 +12,14 @@ class Maze:
         self.length = 0
         self.width = 0
         self.boundary_walls = []
-        self.starting_location = []
+        self.experiment_starting_location = []
+        self.habituation_start_location = []
         self.goal_locations = []
         self.obstacles = []
         self.walls = []
         self.landmarks = []
 
-        walls, goals, start_positions, landmarks = parse_maze(maze_file)
+        walls, goals, experiment_start_positions, habituation_start_positions, landmarks = parse_maze(maze_file)
 
         for index, row in walls.iterrows():
             if index <= 3:
@@ -27,8 +28,11 @@ class Maze:
                 self.obstacles.append(Obstacle(row['x1'], row['y1'], row['x2'], row['y2'], id=index - 4))
             self.walls.append([(row['x1'], row['y1']), (row['x2'], row['y2'])])
 
-        for index, row in start_positions.iterrows():
-            self.starting_location.append(StartingPosition(row['x'], row['y'], row['theta']))
+        for index, row in experiment_start_positions.iterrows():
+            self.experiment_starting_location.append(StartingPosition(row['x'], row['y'], row['theta']))
+
+        for index, row in habituation_start_positions.iterrows():
+            self.habituation_start_location.append(StartingPosition(row['x'], row['y'], row['theta']))
 
         for index, row in goals.iterrows():
             self.goal_locations.append(Goal(row['x'], row['y'], row['id']))
@@ -37,15 +41,22 @@ class Maze:
             self.landmarks.append(Landmark(row['x'], row['y'], color=[row['red'], row['green'], row['blue']], id=index))
 
     # Returns random starting positions
-    def get_random_starting_position(self):
-        return sample(self.starting_location, 1)[0]
+    def get_random_experiment_starting_position(self):
+        return sample(self.experiment_starting_location, 1)[0]
+
+    # Returns random starting positions
+    def get_random_experiment_testing_starting_position(self):
+        return sample(self.experiment_starting_location[1:], 1)[0]
+
+    def get_random_habituation_starting_position(self):
+        return sample(self.habituation_start_location, 1)[0]
 
     # Creates a matplotlib plot of the maze
     def get_maze_figure(self,display_width,display_height):
         self.maze_figure, self.maze_figure_ax = plt.subplots(figsize=(display_width/100,display_height/100))
         self.maze_figure_ax.add_collection(pycol.LineCollection(self.walls,linewidths=2))
-        self.maze_figure_ax.set_ylim(-3, 3)
-        self.maze_figure_ax.set_xlim(-2, 2)
+        self.maze_figure_ax.set_ylim(-4.25, 4.25)
+        self.maze_figure_ax.set_xlim(-4.25, 4.25)
         self.maze_figure_ax.margins(0.1)
         return self.maze_figure, self.maze_figure_ax
 

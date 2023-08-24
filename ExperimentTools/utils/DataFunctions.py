@@ -7,13 +7,13 @@ def add_motion_bias(available_actions, previous_action_index):
     else:
         action_distribution = [i for i in available_actions]
         # Previous action bias
-        action_distribution[previous_action_index] += 1
+        action_distribution[previous_action_index] += 3
         # Adjacent action bias
-        action_distribution[(previous_action_index - 1) % 8] += .5
-        action_distribution[(previous_action_index + 1) % 8] += .5
+        action_distribution[(previous_action_index - 1) % 8] += 2
+        action_distribution[(previous_action_index + 1) % 8] += 2
         # Orthogonal action bias
-        action_distribution[(previous_action_index - 2) % 8] += .25
-        action_distribution[(previous_action_index + 2) % 8] += .25
+        action_distribution[(previous_action_index - 2) % 8] += 1
+        action_distribution[(previous_action_index + 2) % 8] += 1
         # Eliminate not available actions
         action_distribution = np.multiply(action_distribution, available_actions)
     return action_distribution

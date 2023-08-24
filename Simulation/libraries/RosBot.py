@@ -412,16 +412,37 @@ class RosBot(Supervisor):
         self.robot_rotation_field.setSFRotation([0, 0, 1, theta])
         self.sensor_calibration()
 
+    def move_to_training_start(self):
+        starting_position = self.maze.experiment_starting_location[0]
+        self.teleport_robot(starting_position.x, starting_position.y, theta=starting_position.theta)
+
     # Moves the robot to a random starting position
-    def move_to_random_start(self):
-        starting_position = self.maze.get_random_starting_position()
+    def move_to_testing_start(self,index=-1):
+        if index == -1:
+            starting_position = self.maze.get_random_experiment_testing_starting_position()
+        else:
+            starting_position = self.maze.experiment_starting_location[index]
+        self.teleport_robot(starting_position.x, starting_position.y, theta=starting_position.theta)
+
+    # Moves the robot to a random starting position
+    def move_to_random_experiment_start(self):
+        starting_position = self.maze.get_random_experiment_starting_position()
         self.teleport_robot(starting_position.x, starting_position.y,theta=starting_position.theta)
+
+    # Moves the robot to a random starting position
+    def move_to_habituation_start(self,index=-1):
+        if index == -1:
+            starting_position = self.maze.get_random_habituation_starting_position()
+        else:
+            starting_position = self.maze.habituation_start_location[index]
+        self.teleport_robot(starting_position.x, starting_position.y, theta=starting_position.theta)
 
     # Plots Place cells and shows them on the Display
     def update_pc_display(self, place_cell):
         new_pc = patches.Circle((place_cell.center_x, place_cell.center_y), radius=place_cell.radius, fill=False)
         self.pc_figure_ax.add_patch(new_pc)
-        self.pc_figure_ax.axis('equal')
+        self.pc_figure_ax.set_ylim(-4.25, 4.25)
+        self.pc_figure_ax.set_xlim(-4.25, 4.25)
         self.pc_figure.savefig('DataCache/temp.png')
         while self.experiment_supervisor.step(self.timestep) != -1:
             ir = self.pc_display.imageLoad('DataCache/temp.png')
