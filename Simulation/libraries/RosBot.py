@@ -43,10 +43,10 @@ class RelativeDistances:
 
 # Function to calculate the angle and distance between two points (x1,y1) and (x2,y2)
 def calculate_motion_vector(x1, y1, x2, y2):
-    theta = math.degrees(math.atan2((y2 - y1), (x2 - x1)))
+    theta = int(math.degrees(math.atan2((y2 - y1), (x2 - x1))))
     if theta < 0:
         theta += 360
-    magnitude = math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2) * 1000
+    magnitude = math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
     return np.array([theta, magnitude])
 
 
@@ -215,11 +215,12 @@ class RosBot(Supervisor):
         current_encoder_readings = self.get_encoder_readings()
         differences = list(map(operator.sub, current_encoder_readings, starting_encoder_position))
         average_differences = sum(differences) / len(differences)
-        average_distance = average_differences * self.wheel_radius
+        average_distance = average_differences * self.wheel_radius / 1000
         return average_distance
 
     # Calculates the vector needed to move the robot to the point (x,y)
     def calculate_robot_motion_vector(self, x, y):
+        self.sensor_calibration()
         current_position = self.gps.getValues()[0:2]
         return calculate_motion_vector(current_position[0], current_position[1], x, y)
 
@@ -265,7 +266,7 @@ class RosBot(Supervisor):
             motor.setVelocity(velocity)
 
     # Rotates the robot in place to face end_bearing and stops within margin_error (DEFAULT: +-.001)
-    def rotate_to(self, end_bearing, margin_error=.00001):
+    def rotate_to(self, end_bearing, margin_error=.0001):
         while self.experiment_supervisor.step(self.timestep) != -1:
             self.rotation_PID(end_bearing)
             if end_bearing - margin_error <= self.get_bearing() <= end_bearing + margin_error:
@@ -273,7 +274,7 @@ class RosBot(Supervisor):
                 break
 
     # Rotates the robot by the amount degree. Only rotates until robot reaches the calculated end_bearing
-    def rotate(self, degree, margin_error=.01):
+    def rotate(self, degree, margin_error=.0001):
         start_bearing = self.get_bearing()
         end_bearing = start_bearing - degree
         if end_bearing > 360:
@@ -309,7 +310,7 @@ class RosBot(Supervisor):
                 break
 
     # Moves the robot to the point (x,y) by rotating and then moving in a straight line
-    def move_to_xy_with_PID(self, x, y, margin_error=.01):
+    def move_to_xy_with_PID(self, x, y, margin_error=.1):
         motion_vector = self.calculate_robot_motion_vector(x, y)
         if not (motion_vector[0] - margin_error <=
                 self.get_bearing() <=
@@ -321,11 +322,12 @@ class RosBot(Supervisor):
     # Moves the robot to the point (x,y) by rotating and then moving in a straight line
     def move_to_xy_no_PID(self, x, y, velocity=20, margin_error=.01):
         motion_vector = self.calculate_robot_motion_vector(x, y)
+        print(motion_vector)
         if not (motion_vector[0] - margin_error <=
                 self.get_bearing() <=
                 motion_vector[0] + margin_error):
             self.rotate_to(motion_vector[0])
-        motion_vector = self.calculate_robot_motion_vector(x, y)
+
         self.move_forward_no_PID(motion_vector[1])
 
     def perform_random_action(self):
