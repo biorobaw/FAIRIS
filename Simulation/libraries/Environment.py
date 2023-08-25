@@ -1,9 +1,35 @@
 import math
 from random import *
-from matplotlib import collections as pycol
+
 import matplotlib.pyplot as plt
+from matplotlib import collections as pycol
+from matplotlib import patches
 
 from Simulation.libraries.MazeAndPcsParcer import parse_maze
+
+
+def make_maze_plot_with_pc(display_width, display_height, maze_file="Simulation/worlds/mazes/Experiment1/WM00.xml"):
+    maze = Maze(maze_file)
+
+    fig, axs = plt.subplots(figsize=(display_width / 100, display_height / 100))
+
+    axs.add_collection(pycol.LineCollection(maze.walls, linewidths=2))
+
+    for point in maze.experiment_starting_location:
+        new_crc = patches.Circle((point.x, point.y), radius=.05, color='green')
+        axs.add_patch(new_crc)
+    for point in maze.habituation_start_location:
+        new_crc = patches.Circle((point.x, point.y), radius=.05, color='blue')
+        axs.add_patch(new_crc)
+    for point in maze.goal_locations:
+        new_crc = patches.Circle((point.x, point.y), radius=.05, color='red')
+        axs.add_patch(new_crc)
+
+    axs.set_ylim(-4.25, 4.25)
+    axs.set_xlim(-4.25, 4.25)
+    axs.margins(0.1)
+
+    return fig, axs
 
 
 class Maze:
@@ -52,14 +78,9 @@ class Maze:
         return sample(self.habituation_start_location, 1)[0]
 
     # Creates a matplotlib plot of the maze
-    def get_maze_figure(self,display_width,display_height):
-        self.maze_figure, self.maze_figure_ax = plt.subplots(figsize=(display_width/100,display_height/100))
-        self.maze_figure_ax.add_collection(pycol.LineCollection(self.walls,linewidths=2))
-        self.maze_figure_ax.set_ylim(-4.25, 4.25)
-        self.maze_figure_ax.set_xlim(-4.25, 4.25)
-        self.maze_figure_ax.margins(0.1)
+    def get_maze_figure(self, display_width, display_height):
+        self.maze_figure, self.maze_figure_ax = make_maze_plot_with_pc(display_width, display_height)
         return self.maze_figure, self.maze_figure_ax
-
 
 
 class Point:
@@ -78,9 +99,9 @@ class Goal(Point):
 
 
 class StartingPosition(Point):
-    def __init__(self, x, y,theta):
+    def __init__(self, x, y, theta):
         super().__init__(x, y)
-        self.theta =theta
+        self.theta = theta
 
 
 class BoundaryWall:
@@ -154,6 +175,7 @@ class Obstacle:
                                                                size=self.get_webots_size_string())
         return 'DEF Obstacle_{id} Obstacle '.format(id=self.id) + '{ ' + node_string + ' }'
 
+
 class Landmark:
     def __init__(self, x, y, height=1.5, radius=.25, z=0.75, color=[1, 1, 1], id=0):
         self.height = height
@@ -171,7 +193,7 @@ class Landmark:
 
     def get_webots_size_string(self):
         txt = 'size {width:.2f} {length:.2f} {height:.2f}'
-        return txt.format(width=self.height, length=self.radius, height=self.radius-.01)
+        return txt.format(width=self.height, length=self.radius, height=self.radius - .01)
 
     def get_webots_color_string(self):
         txt = 'color {red:.2f} {green:.2f} {blue:.2f}'

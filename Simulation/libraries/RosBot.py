@@ -5,6 +5,8 @@ from matplotlib import patches
 from ExperimentTools.utils.DataFunctions import *
 from Simulation.libraries.Environment import *
 from controller import Supervisor
+import os
+os.chdir('..')
 
 action_set = {
     0: [0, .8],
@@ -216,7 +218,6 @@ class RosBot(Supervisor):
         differences = list(map(operator.sub, current_encoder_readings, starting_encoder_position))
         average_differences = sum(differences) / len(differences)
         average_distance = average_differences * self.wheel_radius
-        print(average_distance)
         return average_distance
 
     # Calculates the vector needed to move the robot to the point (x,y)
@@ -340,7 +341,6 @@ class RosBot(Supervisor):
             if self.check_if_action_is_possible(random_action_index):
                 random_action = action_set.get(random_action_index)
                 self.rotate_to(random_action[0])
-                print(random_action[1])
                 self.move_forward_with_PID(random_action[1])
                 break
         self.previous_action_index = random_action_index
@@ -390,10 +390,10 @@ class RosBot(Supervisor):
         self.maze = Maze(maze_file)
         self.pc_figure, self.pc_figure_ax = self.maze.get_maze_figure(self.pc_display.getWidth(),
                                                                       self.pc_display.getHeight())
-        self.pc_figure.savefig('DataCache/temp.png')
+        self.pc_figure.savefig('Simulation/DataCache/temp.png')
 
         while self.experiment_supervisor.step(self.timestep) != -1:
-            ir = self.pc_display.imageLoad('DataCache/temp.png')
+            ir = self.pc_display.imageLoad('Simulation/DataCache/temp.png')
             self.pc_display.imagePaste(ir, 0, 0, True)
             break
 
@@ -447,8 +447,8 @@ class RosBot(Supervisor):
         self.pc_figure_ax.add_patch(new_pc)
         self.pc_figure_ax.set_ylim(-4.25, 4.25)
         self.pc_figure_ax.set_xlim(-4.25, 4.25)
-        self.pc_figure.savefig('DataCache/temp.png')
+        self.pc_figure.savefig('Simulation/DataCache/temp.png')
         while self.experiment_supervisor.step(self.timestep) != -1:
-            ir = self.pc_display.imageLoad('DataCache/temp.png')
+            ir = self.pc_display.imageLoad('Simulation/DataCache/temp.png')
             self.pc_display.imagePaste(ir, 0, 0, True)
             break
