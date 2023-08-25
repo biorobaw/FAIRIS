@@ -54,7 +54,7 @@ class MainWindow(QMainWindow):
         # connect signals and slots:
         tab_maze.wall_added.connect(pane_plot.gview.add_wall)
         tab_maze.feeder_added.connect(pane_plot.gview.add_feeder)
-        tab_maze.start_pos_added.connect(pane_plot.gview.add_start_pos)
+        tab_maze.experiment_start_pos_added.connect(pane_plot.gview.add_experiment_start_pos)
         tab_maze.signal_clear_paths.connect(pane_plot.gview.clear_paths)
         tab_maze.signal_paths_added.connect(pane_plot.gview.add_paths)
         tab_pcs.pc_added.connect(pane_plot.gview.add_pc)

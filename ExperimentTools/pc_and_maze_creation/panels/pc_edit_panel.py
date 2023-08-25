@@ -10,7 +10,7 @@ from PyQt5.QtGui import QPalette, QColor, QDoubleValidator
 from PyQt5.QtCore import Qt, pyqtSignal, QItemSelection, QItemSelectionModel
 import pandas as pd
 
-from data.PC import PlaceCell
+from ExperimentTools.pc_and_maze_creation.data.PC import PlaceCell
 
 class PanelPCEdit(QWidget):
 

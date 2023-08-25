@@ -4,40 +4,39 @@ from PyQt5.QtCore import QObject, Qt, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QCheckBox, QDoubleSpinBox, QSpinBox
 
 
-class Feeder(QWidget):
+class HabituationStartPos(QWidget):
 
     signal_modified = pyqtSignal(object)
     signal_selected_changed = pyqtSignal(object)
     signal_delete = pyqtSignal(object)
     all_selected = set()
 
-    def __init__(self, id, x, y, *args, **kwargs):
-        super(Feeder, self).__init__(*args, **kwargs)
+    def __init__(self, x, y, w, *args, **kwargs):
+        super(HabituationStartPos, self).__init__(*args, **kwargs)
 
         self.is_selected = False
 
         self.widget_show = QCheckBox(self)
-        self.widget_id = QSpinBox(self)
         self.widget_x = QDoubleSpinBox(self)
         self.widget_y = QDoubleSpinBox(self)
-        self.widgets = [self.widget_show, self.widget_id, self.widget_x, self.widget_y]
+        self.widget_w = QDoubleSpinBox(self)
+        self.widgets = [self.widget_show, self.widget_x, self.widget_y, self.widget_w]
 
         # init chckbox show
         self.widget_show.setCheckState(Qt.Checked)
 
         # create editable fields
         for widget in self.widgets[1:]:
-            if widget != self.widget_id:
-                widget.setDecimals(3)
-            widget.setMinimum(-10000)
-            widget.setMaximum(10000)
+            widget.setDecimals(3)
+            widget.setMinimum(-10000 if widget != self.widget_w else -np.pi)
+            widget.setMaximum(10000 if widget != self.widget_w else np.pi)
             widget.setFrame(False)
-            widget.setSingleStep(0.01 if widget != self.widget_id else 1)
+            widget.setSingleStep(0.01)
             widget.setAlignment(Qt.AlignCenter)
 
-        self.widget_id.setValue(id)
         self.widget_x.setValue(x)
         self.widget_y.setValue(y)
+        self.widget_w.setValue(w)
 
         # connect signals and slots
         self.widget_show.stateChanged.connect(self.object_changed)
@@ -50,8 +49,8 @@ class Feeder(QWidget):
     def y(self):
         return self.widget_y.value()
 
-    def id(self):
-        return self.widget_id.value()
+    def w(self):
+        return self.widget_w.value()
 
     def translate(self, vector):
         self.widget_x.setValue(self.x() + vector.x())
@@ -64,9 +63,9 @@ class Feeder(QWidget):
 
             # add or remove from selected set
             if new_val:
-                Feeder.all_selected.add(self)
-            elif self in Feeder.all_selected:
-                Feeder.all_selected.remove(self)
+                HabituationStartPos.all_selected.add(self)
+            elif self in HabituationStartPos.all_selected:
+                HabituationStartPos.all_selected.remove(self)
 
             # set new value and signal
             self.is_selected = new_val
@@ -83,44 +82,42 @@ class Feeder(QWidget):
 
     @staticmethod
     def clear_all_selected():
-        aux = Feeder.all_selected
-        Feeder.all_selected = set()
+        aux = HabituationStartPos.all_selected
+        HabituationStartPos.all_selected = set()
         for pc in aux:
             pc.setSelected(False)
 
     def delete(self):
-        if self in Feeder.all_selected:
-            Feeder.all_selected.remove(self)
+        if self in HabituationStartPos.all_selected:
+            HabituationStartPos.all_selected.remove(self)
         self.signal_delete.emit(self)
 
     def xml_tag(self):
-        return f'<feeder id="{self.id()}" x="{self.x()}" y="{self.y()}" />'
+        return f'<pos x="{self.x()}" y="{self.y()}" w="{self.w()}" />'
 
     def __str__(self):
-        return f'{self.id()}, {self.x():9.3f}, {self.y():9.3f}'
+        return f'{self.x():9.3f}, {self.y():9.3f}, {self.w():9.3f}'
 
     @staticmethod
     def fromstring(s):
         args = np.fromstring(s.replace('[','').replace(']',''), sep=",")
         if len(args) == 3:
-            return Feeder(args[0], args[1], args[2])
+            return HabituationStartPos(args[0], args[1], args[2])
         else:
             print('PC parse error')
             return None
 
     def pickable(self):
-        return PickableFeeder(self.id(), self.x(), self.y())   
+        return PickableStartPos(self.x(), self.y(), self.w())
 
-    def __eq__(self, f2):
-        return abs(self.x() - f2.x()) < 0.001 and abs(self.y() - f2.y()) < 0.001
+    def __eq__(self, pos):
+        return abs(self.x() - pos.x()) < 0.001 and abs(self.y() - pos.y()) < 0.001
 
     __hash__ = QWidget.__hash__
 
-class PickableFeeder:
-
-    def __init__(self, id,  x, y):
-        self.data = [x, y, id]
-
+class PickableStartPos:
+    def __init__(self, x, y, w):
+        self.data = [x, y, w]
 
     def x(self):
         return self.data[0]
@@ -128,5 +125,6 @@ class PickableFeeder:
     def y(self):
         return self.data[1]
 
-    def id(self):
+    def w(self):
         return self.data[2]
+

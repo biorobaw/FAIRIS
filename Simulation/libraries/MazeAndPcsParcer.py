@@ -3,16 +3,16 @@ import xml.etree.ElementTree as ET
 import pandas as pd
 
 
-def parse_feeder(xml_feeder):
+def parse_goal(xml_feeder):
     fid = int(xml_feeder.get('id'))
     x = float(xml_feeder.get('x'))
     y = float(xml_feeder.get('y'))
     return pd.DataFrame(data=[[fid, x, y]], columns=['id', 'x', 'y'])
 
 
-def parse_all_feeders(root):
-    return pd.concat([pd.DataFrame(columns=['id', 'x', 'y'])] + [parse_feeder(xml_feeder) for xml_feeder in
-                                                                 root.findall('feeder')]).reset_index(drop=True)
+def parse_all_goals(root):
+    return pd.concat([pd.DataFrame(columns=['id', 'x', 'y'])] + [parse_goal(xml_feeder) for xml_feeder in
+                                                                 root.findall('goal')]).reset_index(drop=True)
 
 
 def parse_wall(xml_wall):
@@ -54,7 +54,7 @@ def parse_maze(file):
     experiment_start_positions = parse_all_position_type(root.find('experimentStartPositions'))
     habituation_start_positions = parse_all_position_type(root.find('habituationStartPositions'))
     walls = parse_all_obsticles(root)
-    feeders = parse_all_feeders(root)
+    goals = parse_all_goals(root)
     landmarks = parse_all_landmarks(root)
 
-    return walls, feeders, experiment_start_positions, habituation_start_positions, landmarks
+    return walls, goals, experiment_start_positions, habituation_start_positions, landmarks

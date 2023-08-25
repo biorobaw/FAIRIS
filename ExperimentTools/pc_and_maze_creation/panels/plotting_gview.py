@@ -10,8 +10,8 @@ from PyQt5.Qt import QApplication, QLabel, QMainWindow, \
                             QRectF, Qt, QPainter, QTransform, QKeyEvent, QWheelEvent, \
                             QMouseEvent, QMouseEvent, QGraphicsItem
 
-from data.PC import PlaceCell
-from data.Wall import Wall
+from ExperimentTools.pc_and_maze_creation.data.PC import PlaceCell
+from ExperimentTools.pc_and_maze_creation.data.Wall import Wall
 
 class GViewPlotting(QGraphicsView):
 
@@ -19,8 +19,9 @@ class GViewPlotting(QGraphicsView):
     pc_from_graphic = {}
     wall_from_graphics = {}
     feeder_from_graphics = {}
-    start_pos_from_graphics = {}
-    view_rect = QRectF(-1, -1, 2, 2)  # user defined rectangle of scene coordinates
+    experiment_start_pos_from_graphics = {}
+    habituation_start_pos_from_graphics = {}
+    view_rect = QRectF(-3, -3, 3, 3)  # user defined rectangle of scene coordinates
     auto_fit = True
 
     start_pos_drawing_radius = 0.02
@@ -70,9 +71,13 @@ class GViewPlotting(QGraphicsView):
         self.pen_feeder.setWidthF(0.02)
         self.pen_feeder.setColor(QColor('red'))
 
-        self.pen_start_pos = QPen()
-        self.pen_start_pos.setWidthF(0.02)
-        self.pen_start_pos.setColor(QColor('green'))
+        self.pen_experiment_start_pos = QPen()
+        self.pen_experiment_start_pos.setWidthF(0.02)
+        self.pen_experiment_start_pos.setColor(QColor('green'))
+
+        self.pen_habituation_start_pos = QPen()
+        self.pen_habituation_start_pos.setWidthF(0.02)
+        self.pen_habituation_start_pos.setColor(QColor('blue'))
 
 
 
@@ -109,20 +114,36 @@ class GViewPlotting(QGraphicsView):
         self.feeder_from_graphics[g_point] = feeder
         self.fit_scene_in_view()
 
-    def add_start_pos(self, start_pos):
+    def add_experiment_start_pos(self, start_pos):
         x = start_pos.x()
         y = start_pos.y()
         r = self.start_pos_drawing_radius
 
-        g_point = self.scene().addEllipse(x - r, y - r, 2 * r, 2 * r, self.pen_start_pos)
+        g_point = self.scene().addEllipse(x - r, y - r, 2 * r, 2 * r, self.pen_experiment_start_pos)
         # g_point.setFlag(QGraphicsItem.ItemIsMovable)
 
-        start_pos.signal_modified.connect(self.update_start_pos)
-        start_pos.signal_selected_changed.connect(self.update_start_pos)
+        start_pos.signal_modified.connect(self.update_experiment_start_pos)
+        start_pos.signal_selected_changed.connect(self.update_experiment_start_pos)
         start_pos.signal_delete.connect(self.remove_graphics)
 
         self.graphics[start_pos] = {'ellipse': g_point}
-        self.start_pos_from_graphics[g_point] = start_pos
+        self.experiment_start_pos_from_graphics[g_point] = start_pos
+        self.fit_scene_in_view()
+
+    def add_habituation_start_pos(self, start_pos):
+        x = start_pos.x()
+        y = start_pos.y()
+        r = self.start_pos_drawing_radius
+
+        g_point = self.scene().addEllipse(x - r, y - r, 2 * r, 2 * r, self.pen_habituation_start_pos)
+        # g_point.setFlag(QGraphicsItem.ItemIsMovable)
+
+        start_pos.signal_modified.connect(self.update_habituation_start_pos)
+        start_pos.signal_selected_changed.connect(self.update_habituation_start_pos)
+        start_pos.signal_delete.connect(self.remove_graphics)
+
+        self.graphics[start_pos] = {'ellipse': g_point}
+        self.habituation_start_pos_from_graphics[g_point] = start_pos
         self.fit_scene_in_view()
 
     def add_pc(self, pc):
@@ -171,13 +192,27 @@ class GViewPlotting(QGraphicsView):
             r = self.feeder_drawing_radius
             graphic.setRect(x-r, y-r, 2*r, 2*r)
 
-    def update_start_pos(self, start_pos):
+    def update_experiment_start_pos(self, start_pos):
         object_graphics = self.graphics[start_pos]
         graphic = object_graphics['ellipse']
         if start_pos.is_hidden():
             graphic.hide()
         else:
-            pen = self.pen_start_pos_selected if start_pos.selected() else self.pen_start_pos
+            pen = self.pen_experiment_start_pos
+            graphic.show()
+            graphic.setPen(pen)
+            x = start_pos.x()
+            y = start_pos.y()
+            r = self.start_pos_drawing_radius
+            graphic.setRect(x-r, y-r, 2*r, 2*r)
+
+    def update_habituation_start_pos(self, start_pos):
+        object_graphics = self.graphics[start_pos]
+        graphic = object_graphics['ellipse']
+        if start_pos.is_hidden():
+            graphic.hide()
+        else:
+            pen = self.pen_habituation_start_pos
             graphic.show()
             graphic.setPen(pen)
             x = start_pos.x()

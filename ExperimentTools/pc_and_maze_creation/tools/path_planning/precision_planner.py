@@ -12,11 +12,13 @@ from multiprocessing import Pool
 # It assumes obstacles are segments that do not intercept each other.
 
 
-sys.path.append('../utils')
-import MazeParser
-from data.Wall import PickableWall as Wall
-from data.Feeder import PickableFeeder as Feeder
-from data.StartPos import PickableStartPos as StartPos
+import os
+os.chdir("../..")
+from ExperimentTools.utils.MazeParser import *
+from ExperimentTools.pc_and_maze_creation.data.Wall import PickableWall as Wall
+from ExperimentTools.pc_and_maze_creation.data.Goals import PickableFeeder as Feeder
+from ExperimentTools.pc_and_maze_creation.data.ExperimentStartPos import PickableStartPos as StartPos
+
 
 ROBOT_STEP = 0.08
 FEEDING_DISTANCE = 0.1

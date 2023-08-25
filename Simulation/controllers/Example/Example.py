@@ -29,6 +29,7 @@ for i in range(8):
     # experiment_pc_network.print_pc_activations()
     robot.update_pc_display(experiment_pc_network.pc_list[-1])
 
+
 robot.experiment_supervisor.simulationReset()
 
 

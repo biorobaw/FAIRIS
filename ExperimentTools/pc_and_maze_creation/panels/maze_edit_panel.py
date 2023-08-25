@@ -9,14 +9,16 @@ from PyQt5.QtWidgets import QApplication, QLabel, QMainWindow, \
 from PyQt5.QtGui import QPalette, QColor, QDoubleValidator
 from PyQt5.QtCore import Qt, pyqtSignal
 import pandas as pd
+import os
+os.chdir("../..")
 
-sys.path.append('../utils')
-import MazeParser
+from ExperimentTools.utils import MazeParser
 
-from data.Wall import Wall
-from data.Feeder import Feeder
-from data.StartPos import StartPos
-from tools.path_planning.precision_planner import find_path, generate_maze_metrics
+from ExperimentTools.pc_and_maze_creation.data.Wall import Wall
+from ExperimentTools.pc_and_maze_creation.data.Goals import Goals
+from ExperimentTools.pc_and_maze_creation.data.ExperimentStartPos import ExperimentStartPos
+from ExperimentTools.pc_and_maze_creation.data.HabituationStartPos import HabituationStartPos
+from ExperimentTools.pc_and_maze_creation.tools.path_planning.precision_planner import find_path, generate_maze_metrics
 
 
 
@@ -25,11 +27,14 @@ class PanelMazeEdit(QWidget):
     wall_added = pyqtSignal(Wall)
     wall_removed = pyqtSignal(Wall)
 
-    feeder_added = pyqtSignal(Feeder)
-    feeder_removed = pyqtSignal(Feeder)
+    feeder_added = pyqtSignal(Goals)
+    feeder_removed = pyqtSignal(Goals)
     
-    start_pos_added = pyqtSignal(StartPos)
-    start_pos_removed = pyqtSignal(StartPos) 
+    experiment_start_pos_added = pyqtSignal(ExperimentStartPos)
+    experiment_start_pos_removed = pyqtSignal(ExperimentStartPos)
+
+    habituation_start_pos_added = pyqtSignal(HabituationStartPos)
+    habituation_start_pos_removed = pyqtSignal(HabituationStartPos)
 
     signal_clear_paths = pyqtSignal()
     signal_paths_added = pyqtSignal(object)
@@ -43,8 +48,9 @@ class PanelMazeEdit(QWidget):
         # create data container:
         self.walls = []
         self.feeders = []
-        self.start_positions = []
-        self.last_file_loaded = 'data_generators/default_maze_generator.py'
+        self.experiment_start_positions = []
+        self.habituation_start_positions = []
+        self.last_file_loaded = 'Simulation/worlds/mazes/Samples/WM00.xml'
 
         # create the layout for the panel
         layout_pane = QVBoxLayout()
@@ -172,9 +178,9 @@ class PanelMazeEdit(QWidget):
             f.delete()
         self.feeders = []
 
-        for p in self.start_positions:
+        for p in self.experiment_start_positions:
             p.delete()
-        self.start_positions = []
+        self.experiment_start_positions = []
 
         self.signal_clear_paths.emit()
 
@@ -213,30 +219,44 @@ class PanelMazeEdit(QWidget):
     def add_feeder(self, id=1, x=0.5, y=-0.5, feeder_str=""):
         # create feeder
         if feeder_str != "":
-            feeder = feeder.fromstring(feeder_str)
+            feeder = Goals.fromstring(feeder_str)
             if feeder is None:
                 return
         else:
-            feeder = Feeder(id, x, y, None)
+            feeder = Goals(id, x, y, None)
         
         if feeder not in self.feeders:
             self.feeders += [feeder]
             # feeder.object_changed.connect(self.select_feeder)
             self.feeder_added.emit(feeder)
 
-    def add_start_pos(self, x=0, y=-1.5, w=0, start_pos_str=""):
+    def add_experiment_start_pos(self, x=0, y=-1.5, w=0, start_pos_str=""):
         # create start_pos
         if start_pos_str != "":
-            start_pos = start_pos.fromstring(start_pos_str)
+            start_pos = ExperimentStartPos.fromstring(start_pos_str)
             if start_pos is None:
                 return
         else:
-            start_pos = StartPos(x, y, w, None)
+            start_pos = ExperimentStartPos(x, y, w, None)
 
-        if start_pos not in self.start_positions:
-            self.start_positions += [start_pos]
+        if start_pos not in self.experiment_start_positions:
+            self.experiment_start_positions += [start_pos]
             # start_pos.object_changed.connect(self.select_wall)
-            self.start_pos_added.emit(start_pos)
+            self.experiment_start_pos_added.emit(start_pos)
+
+    def add_habituation_start_pos(self, x=0, y=-1.5, w=0, start_pos_str=""):
+        # create start_pos
+        if start_pos_str != "":
+            start_pos = HabituationStartPos.fromstring(start_pos_str)
+            if start_pos is None:
+                return
+        else:
+            start_pos = HabituationStartPos(x, y, w, None)
+
+        if start_pos not in self.experiment_start_positions:
+            self.habituation_start_positions += [start_pos]
+            # start_pos.object_changed.connect(self.select_wall)
+            self.habituation_start_pos_added.emit(start_pos)
 
     def save(self):
         name = QFileDialog().getSaveFileName(self, 'Save File')[0]
@@ -253,11 +273,11 @@ class PanelMazeEdit(QWidget):
             f.write('\n')
             for w in self.walls:
                 f.write(f'    {w.xml_tag()}\n')
-            if len(self.start_positions) > 0:
+            if len(self.experiment_start_positions) > 0:
                 f.write('\n')
                 f.write('\n')
                 f.write('    <startPositions>\n')
-                for p in self.start_positions:
+                for p in self.experiment_start_positions:
                     f.write(f'        {p.xml_tag()}\n')
                 f.write('    </startPositions>\n')
 
@@ -278,17 +298,17 @@ class PanelMazeEdit(QWidget):
             return
 
 
-        walls, feeders, start_positions = pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+        walls, goals, experiment_start_positions, habituation_start_positions, landmarks = pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
         try:
             if file_name.endswith(".xml"):
-                walls, feeders, start_positions = MazeParser.parse_maze(file_name)
+                walls, goals, experiment_start_positions, habituation_start_positions, landmarks = MazeParser.parse_maze(file_name)
             elif file_name.endswith(".py"):
                 spec = loader.spec_from_file_location("maze_loader_file", file_name)
                 loader_module = loader.module_from_spec(spec)
                 spec.loader.exec_module(loader_module)
 
                 if hasattr(loader_module, 'load_maze_df'):
-                    walls, feeders, start_positions = loader_module.load_maze_df()
+                    walls, goals, start_positions = loader_module.load_maze_df()
                 else: 
                     print(f'Function "load_maze_df" not implemented in file {file_name}')
 
@@ -311,13 +331,17 @@ class PanelMazeEdit(QWidget):
             self.add_wall(float(row['x1']), float(row['y1']),
                            float(row['x2']), float(row['y2']))
 
-        for index, row in feeders.iterrows():
-            #Currently we only display feeders, we do not allow editting them
+        for index, row in goals.iterrows():
+            #Currently we only display goals, we do not allow editting them
             self.add_feeder(int(row['fid']), float(row['x']), float(row['y']))
 
-        for index, row in start_positions.iterrows():
-            #Currently we only display feeders, we do not allow editting them
-            self.add_start_pos(float(row['x']), float(row['y']), float(row['w']))
+        for index, row in experiment_start_positions.iterrows():
+            #Currently we only display goals, we do not allow editting them
+            self.add_experiment_start_pos(float(row['x']), float(row['y']), float(row['theta']))
+
+        for index, row in habituation_start_positions.iterrows():
+            #Currently we only display goals, we do not allow editting them
+            self.add_habituation_start_pos(float(row['x']), float(row['y']), float(row['theta']))
 
         if self.maze_metrics is not None:
             paths = [ast.literal_eval(p) for p in self.maze_metrics.path.values]
@@ -349,7 +373,7 @@ class PanelMazeEdit(QWidget):
         i = 0
         paths = []
         pickable_walls = [w.pickable() for w in self.walls]
-        args = [ (start.pickable(), goal.pickable(), pickable_walls) for goal in self.feeders for start in self.start_positions]
+        args = [(start.pickable(), goal.pickable(), pickable_walls) for goal in self.feeders for start in self.experiment_start_positions]
         args = [ (i,) + a for (i,a) in zip(range(len(args)), args) ]
 
         if self.pool is None:
