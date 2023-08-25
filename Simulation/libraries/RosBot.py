@@ -387,9 +387,8 @@ class RosBot(Supervisor):
 
     # Takes in a xml maze file and creates the walls, starting locations, and goal locations
     def load_environment(self, maze_file):
-        self.maze = Maze(maze_file)
-        self.pc_figure, self.pc_figure_ax = self.maze.get_maze_figure(self.pc_display.getWidth(),
-                                                                      self.pc_display.getHeight())
+        self.maze = Maze(maze_file, display_width=self.pc_display.getWidth(),display_height=self.pc_display.getHeight())
+        self.pc_figure, self.pc_figure_ax = self.maze.get_maze_figure()
         self.pc_figure.savefig('Simulation/DataCache/temp.png')
 
         while self.experiment_supervisor.step(self.timestep) != -1:

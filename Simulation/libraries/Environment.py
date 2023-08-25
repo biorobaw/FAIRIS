@@ -33,7 +33,7 @@ def make_maze_plot_with_pc(display_width, display_height, maze_file="Simulation/
 
 
 class Maze:
-    def __init__(self, maze_file):
+    def __init__(self, maze_file, display_width=1000, display_height=1000):
 
         self.length = 0
         self.width = 0
@@ -46,7 +46,6 @@ class Maze:
         self.landmarks = []
 
         walls, goals, experiment_start_positions, habituation_start_positions, landmarks = parse_maze(maze_file)
-
         for index, row in walls.iterrows():
             if index <= 3:
                 self.boundary_walls.append(BoundaryWall(row['x1'], row['y1'], row['x2'], row['y2'], id=index))
@@ -66,6 +65,28 @@ class Maze:
         for index, row in landmarks.iterrows():
             self.landmarks.append(Landmark(row['x'], row['y'], color=[row['red'], row['green'], row['blue']], id=index))
 
+        self.make_maze_plot_with_pc(display_width, display_height)
+
+    def make_maze_plot_with_pc(self, display_width, display_height):
+
+        self.maze_figure, self.maze_figure_ax = plt.subplots(figsize=(display_width / 100, display_height / 100))
+
+        self.maze_figure_ax.add_collection(pycol.LineCollection(self.walls, linewidths=2))
+
+        for point in self.experiment_starting_location:
+            new_crc = patches.Circle((point.x, point.y), radius=.05, color='green')
+            self.maze_figure_ax.add_patch(new_crc)
+        for point in self.habituation_start_location:
+            new_crc = patches.Circle((point.x, point.y), radius=.05, color='blue')
+            self.maze_figure_ax.add_patch(new_crc)
+        for point in self.goal_locations:
+            new_crc = patches.Circle((point.x, point.y), radius=.05, color='red')
+            self.maze_figure_ax.add_patch(new_crc)
+
+        self.maze_figure_ax.set_ylim(-4.25, 4.25)
+        self.maze_figure_ax.set_xlim(-4.25, 4.25)
+        self.maze_figure_ax.margins(0.1)
+
     # Returns random starting positions
     def get_random_experiment_starting_position(self):
         return sample(self.experiment_starting_location, 1)[0]
@@ -78,8 +99,7 @@ class Maze:
         return sample(self.habituation_start_location, 1)[0]
 
     # Creates a matplotlib plot of the maze
-    def get_maze_figure(self, display_width, display_height):
-        self.maze_figure, self.maze_figure_ax = make_maze_plot_with_pc(display_width, display_height)
+    def get_maze_figure(self):
         return self.maze_figure, self.maze_figure_ax
 
 
