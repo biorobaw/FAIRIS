@@ -3,7 +3,6 @@
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023a/projects/objects/backgrounds/protos/TexturedBackground.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023a/projects/objects/backgrounds/protos/TexturedBackgroundLight.proto"
 IMPORTABLE EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023a/projects/robots/husarion/rosbot/protos/Rosbot.proto"
-EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023a/projects/devices/orbbec/protos/Astra.proto"
 IMPORTABLE EXTERNPROTO "../protos/WorldObjects/Obstacle.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023a/projects/objects/floors/protos/Floor.proto"
 IMPORTABLE EXTERNPROTO "../protos/ROSbot/ROSbot_Lidar.proto"
@@ -38,7 +37,7 @@ DEF Agent Rosbot {
     Display {
       name "Place Cell Display"
       width 400
-      height 600
+      height 400
     }
   ]
   lidarSlot [

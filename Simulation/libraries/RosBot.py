@@ -73,9 +73,9 @@ class RosBot(Supervisor):
         self.robot_rotation_field = self.robot_node.getField('rotation')
 
         # Physical Robot Specifications
-        self.wheel_radius = 43  # mm
-        self.axel_length = 265  # mm
-        self.robot_radius = 308.6 / 2  # mm
+        self.wheel_radius = .043  # m
+        self.axel_length = .265  # m
+        self.robot_radius = .3086  # m
 
         # Experiment Variables
         self.previous_action_index = -1
@@ -215,7 +215,8 @@ class RosBot(Supervisor):
         current_encoder_readings = self.get_encoder_readings()
         differences = list(map(operator.sub, current_encoder_readings, starting_encoder_position))
         average_differences = sum(differences) / len(differences)
-        average_distance = average_differences * self.wheel_radius / 1000
+        average_distance = average_differences * self.wheel_radius
+        print(average_distance)
         return average_distance
 
     # Calculates the vector needed to move the robot to the point (x,y)
@@ -249,7 +250,7 @@ class RosBot(Supervisor):
             self.rear_right_motor.setVelocity(1 * velocity)
 
     # Sets motor speeds using PID to move the robot forward a desired distance in mm
-    def forward_motion_with_encoder_PID(self, travel_distance, starting_encoder_position, K_p=.25):
+    def forward_motion_with_encoder_PID(self, travel_distance, starting_encoder_position, K_p=100):
         delta = travel_distance - self.calculate_wheel_distance_traveled(starting_encoder_position)
         velocity = self.velocity_saturation(K_p * delta)
         for motor in self.all_motors:
@@ -284,7 +285,7 @@ class RosBot(Supervisor):
         self.rotate_to(end_bearing, margin_error=margin_error)
 
     # Moves the robot forward in a straight line by the amount distance (in mm)
-    def move_forward_with_PID(self, distance, margin_error=.01):
+    def move_forward_with_PID(self, distance, margin_error=.1):
         starting_encoder_position = self.get_encoder_readings()
         while self.experiment_supervisor.step(self.timestep) != -1:
             self.forward_motion_with_encoder_PID(distance, starting_encoder_position)
@@ -339,7 +340,8 @@ class RosBot(Supervisor):
             if self.check_if_action_is_possible(random_action_index):
                 random_action = action_set.get(random_action_index)
                 self.rotate_to(random_action[0])
-                self.move_forward_with_PID(500 * random_action[1])
+                print(random_action[1])
+                self.move_forward_with_PID(random_action[1])
                 break
         self.previous_action_index = random_action_index
 
@@ -347,7 +349,7 @@ class RosBot(Supervisor):
         action = action_set.get(action_index)
         if self.check_if_action_is_possible(action_index=action_index):
             self.rotate_to(action[0])
-            self.move_forward_with_PID(500 * action[1])
+            self.move_forward_with_PID(action[1])
         else:
             print("cant preform action")
 
