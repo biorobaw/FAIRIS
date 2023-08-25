@@ -42,7 +42,7 @@ def parse_position(xml_position):
     return pd.DataFrame(data=[[float(xml_position.get(p)) for p in ['x', 'y', 'theta']]], columns=['x', 'y', 'theta'])
 
 
-def parse_start_positions(xml_positions):
+def parse_all_position_type(xml_positions):
     if xml_positions is None:
         return pd.DataFrame(columns=['x', 'y', 'theta'])
     return pd.concat([pd.DataFrame(columns=['x', 'y', 'theta'])] + [parse_position(xml_pos) for xml_pos in
@@ -51,9 +51,10 @@ def parse_start_positions(xml_positions):
 
 def parse_maze(file):
     root = ET.parse(file).getroot()
-    start_positions = parse_start_positions(root.find('startPositions'))
+    experiment_start_positions = parse_all_position_type(root.find('experimentStartPositions'))
+    habituation_start_positions = parse_all_position_type(root.find('habituationStartPositions'))
     walls = parse_all_obsticles(root)
     feeders = parse_all_feeders(root)
     landmarks = parse_all_landmarks(root)
 
-    return walls, feeders, start_positions, landmarks
+    return walls, feeders, experiment_start_positions, habituation_start_positions, landmarks

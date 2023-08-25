@@ -59,6 +59,7 @@ class PlaceCellNetwork:
         self.pc_list = []
         self.pc_coordinates = []
         self.pc_generation_parm = pc_generation_parm
+        self.add_pc_to_network(0.0,0.0,radius=4.243)
 
     def add_pc_to_network(self, robot_x, robot_y, radius=.1):
         pc_id = len(self.pc_list)
