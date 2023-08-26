@@ -265,6 +265,65 @@ class RosBot(Supervisor):
         for motor in self.all_motors:
             motor.setVelocity(velocity)
 
+    def calc_bearing(self, lat1, long1, lat2, long2):
+        # Convert latitude and longitude to radians
+        lat1 = math.radians(lat1)
+        long1 = math.radians(long1)
+        lat2 = math.radians(lat2)
+        long2 = math.radians(long2)
+
+        # Calculate the bearing
+        bearing = math.atan2(
+            math.sin(long2 - long1) * math.cos(lat2),
+            math.cos(lat1) * math.sin(lat2) - math.sin(lat1) * math.cos(lat2) * math.cos(long2 - long1)
+        )
+
+        # Convert the bearing to degrees
+        bearing = math.degrees(bearing)
+
+        # Make sure the bearing is positive
+        bearing = (bearing + 360) % 360
+
+        return bearing
+
+    def forward_motion_to_xy(self, x, y, velocity=26):
+        pos = []
+        velocity = self.velocity_saturation(velocity)
+
+        current_position = self.gps.getValues()[0:2]
+
+        dist = math.dist(current_position, [x, y])
+        print(f'{dist=}')
+
+        count = 0
+        timestep = math.floor(8 * dist / 1.5)
+        print(f'{timestep=}')
+
+        while self.experiment_supervisor.step(self.timestep) != -1:
+            current_position = self.gps.getValues()[0:2]
+
+            angle = self.calc_bearing(current_position[0], current_position[1], x, y)
+            if abs(self.get_bearing() - angle) > 5:
+                self.rotate_to(angle, margin_error=0.5)
+
+            for motor in self.all_motors:
+                motor.setVelocity(velocity)
+
+            delta_x = x - current_position[0]
+            if x < current_position[0]:
+                delta_x *= -1
+            delta_y = y - current_position[1]
+            if y < current_position[1]:
+                delta_y *= -1
+
+            if count % timestep == 0:
+                pos.append(current_position)
+
+            count += 1
+
+            if delta_x < 0.1 and delta_y < 0.1:
+                return pos
+
     # Rotates the robot in place to face end_bearing and stops within margin_error (DEFAULT: +-.001)
     def rotate_to(self, end_bearing, margin_error=.0001):
         while self.experiment_supervisor.step(self.timestep) != -1:
@@ -409,7 +468,7 @@ class RosBot(Supervisor):
             self.landmark_nodes.append(self.experiment_supervisor.getFromDef('Landmark'))
 
     # Teleports the robot to the point (x,y,z)
-    def teleport_robot(self, x=0.0, y=0.0, z=0.0,theta=math.pi):
+    def teleport_robot(self, x=0.0, y=0.0, z=0.0, theta=math.pi):
         self.robot_translation_field.setSFVec3f([x, y, z])
         self.robot_rotation_field.setSFRotation([0, 0, 1, theta])
         self.sensor_calibration()
