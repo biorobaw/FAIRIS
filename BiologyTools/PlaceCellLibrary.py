@@ -1,6 +1,7 @@
 import math
 from threading import Thread
 
+import numpy as np
 from sklearn.neighbors import KDTree
 
 
@@ -70,23 +71,39 @@ class PlaceCellNetwork:
 
     # Used for threading implementation
     def calculate_single_pc_activation(self,pc,robot_x,robot_y):
-        print('here')
         pc.calculate_activation(robot_x,robot_y)
 
-    def calculate_total_pc_activation(self, robot_x, robot_y):
-        # Threading approch
-        pc_activation_threads = []
+    def activate_pc_network(self, robot_x, robot_y):
+        # Standard approach
         for pc in self.pc_list:
-            t = PlaceCellTread(pc,robot_x,robot_y)
-            pc_activation_threads.append(t)
-            t.start()
-        for t in pc_activation_threads:
-            t.join()
-            self.pc_list[t.pc.id] = t.pc
+            pc.calculate_activation(robot_x,robot_y)
 
+        # Threading approach
+        # pc_activation_threads = []
+        # for pc in self.pc_list:
+        #     t = PlaceCellTread(pc,robot_x,robot_y)
+        #     pc_activation_threads.append(t)
+        #     t.start()
+        # for t in pc_activation_threads:
+        #     t.join()
+        #     self.pc_list[t.pc.id] = t.pc
+
+    def get_total_pc_activation(self):
+        sum = 0
+        for pc in self.pc_list:
+            sum += pc.activity
+        return sum
+
+    def get_all_pc_activations_normalized(self):
+        self.normilize_all_pc()
+        return np.array([pc.activity for pc in self.pc_list])
 
     def print_pc_activations(self):
         for pc in self.pc_list:
             print(pc.id, pc.activity)
     def normilize_all_pc(self):
-        pass
+        total_activation = self.get_total_pc_activation()
+        if total_activation == 0:
+            total_activation = 1
+        for pc in self.pc_list:
+            pc.activity = pc.activity/total_activation

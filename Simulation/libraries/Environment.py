@@ -1,11 +1,29 @@
 import math
-from random import *
+import random
+from collections import deque
 
 import matplotlib.pyplot as plt
 from matplotlib import collections as pycol
 from matplotlib import patches
 
 from Simulation.libraries.MazeAndPcsParcer import parse_maze
+
+
+class RandomStartPositionGenerator:
+    def __init__(self, starting_positions):
+        self.starting_positions = deque(starting_positions)
+        self.used_positions = []
+
+    def get_random_start_position(self):
+        if not self.starting_positions:
+            # All starting positions have been used once, reset the list.
+            self.starting_positions.extend(self.used_positions)
+            self.used_positions.clear()
+
+        position = random.choice(self.starting_positions)
+        self.starting_positions.remove(position)
+        self.used_positions.append(position)
+        return position
 
 
 def make_maze_plot_with_pc(display_width, display_height, maze_file="Simulation/worlds/mazes/Experiment1/WM00.xml"):
@@ -65,9 +83,15 @@ class Maze:
         for index, row in landmarks.iterrows():
             self.landmarks.append(Landmark(row['x'], row['y'], color=[row['red'], row['green'], row['blue']], id=index))
 
-        self.make_maze_plot_with_pc(display_width, display_height)
+        self.make_maze_plot(display_width, display_height)
 
-    def make_maze_plot_with_pc(self, display_width, display_height):
+        self.random_experiment_starting_position_generator = RandomStartPositionGenerator(
+            self.experiment_starting_location)
+        self.random_habituation_starting_position_generator = RandomStartPositionGenerator(
+            self.habituation_start_location)
+        self.random_testing_starting_position_generator = RandomStartPositionGenerator(self.habituation_start_location)
+
+    def make_maze_plot(self, display_width, display_height):
 
         self.maze_figure, self.maze_figure_ax = plt.subplots(figsize=(display_width / 100, display_height / 100))
 
@@ -87,20 +111,26 @@ class Maze:
         self.maze_figure_ax.set_xlim(-4.25, 4.25)
         self.maze_figure_ax.margins(0.1)
 
+    def close_maze_figure(self):
+        plt.close(self.maze_figure)
+
     # Returns random starting positions
     def get_random_experiment_starting_position(self):
-        return sample(self.experiment_starting_location, 1)[0]
+        return self.random_experiment_starting_position_generator.get_random_start_position()
 
     # Returns random starting positions
     def get_random_experiment_testing_starting_position(self):
-        return sample(self.experiment_starting_location[1:], 1)[0]
+        return self.random_testing_starting_position_generator.get_random_start_position()
 
     def get_random_habituation_starting_position(self):
-        return sample(self.habituation_start_location, 1)[0]
+        return self.random_habituation_starting_position_generator.get_random_start_position()
 
     # Creates a matplotlib plot of the maze
     def get_maze_figure(self):
         return self.maze_figure, self.maze_figure_ax
+
+    def get_goal_location(self):
+        return self.goal_locations[0].x, self.goal_locations[0].y
 
 
 class Point:

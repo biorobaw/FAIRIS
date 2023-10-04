@@ -25,7 +25,7 @@ for i in range(8):
     robot_x, robot_y, robot_theta = robot.get_robot_pose()
     if experiment_pc_network.get_num_active_pc(robot_x,robot_y) == 0:
         experiment_pc_network.add_pc_to_network(robot_x,robot_y,)
-    experiment_pc_network.calculate_total_pc_activation(robot_x, robot_y)
+    experiment_pc_network.activate_pc_network(robot_x, robot_y)
     # experiment_pc_network.print_pc_activations()
     robot.update_pc_display(experiment_pc_network.pc_list[-1])
 

@@ -12,13 +12,13 @@ from multiprocessing import Pool
 # It assumes obstacles are segments that do not intercept each other.
 
 
-import os
-os.chdir("../..")
-from ExperimentTools.utils.MazeParser import *
-from ExperimentTools.pc_and_maze_creation.data.Wall import PickableWall as Wall
-from ExperimentTools.pc_and_maze_creation.data.Goals import PickableFeeder as Feeder
-from ExperimentTools.pc_and_maze_creation.data.ExperimentStartPos import PickableStartPos as StartPos
+os.chdir('../../..')
+# This file divides space in a grid, and for each cell it approximates the distance to the closest subgoal (obstacle corner) - feeders are ignored
 
+from Simulation.libraries.MazeAndPcsParcer import *
+from Simulation.libraries.Environment import Obstacle
+from Simulation.libraries.Environment import Goal
+from Simulation.libraries.Environment import StartingPosition
 
 ROBOT_STEP = 0.08
 FEEDING_DISTANCE = 0.1
@@ -144,7 +144,7 @@ def distance(n1, n2):
 def under_estimation(n1, n2):
     dx = abs(math.abn1.x - n2.x)
     dy = abs(n1.y - n2.y)
-    return max( 0, sqrt(2)*min(dx,dy) + abs(dx-dy) - FEEDING_DISTANCE)
+    return max( 0, math.sqrt(2)*min(dx,dy) + abs(dx-dy) - FEEDING_DISTANCE)
 
 def is_goal_reached_fnct(node, goal):
     d = node.distance(goal)
@@ -167,11 +167,11 @@ def generate_maze_metrics(folder):
             try:
                 print(filename, '', end='')
                 full_path = os.path.join(folder, filename)
-                walls_aux, feeders_aux, start_positions_aux = MazeParser.parse_maze(full_path)
+                walls_aux, feeders_aux, start_positions_aux = parse_maze_for_wavefront(full_path)
 
-                walls = [ Wall(float(row['x1']), float(row['y1']), float(row['x2']), float(row['y2'])) for index, row in walls_aux.iterrows()]
-                goals = [ Feeder(int(f['fid']), float(f['x']), float(f['y'])) for _, f in feeders_aux.iterrows() ]
-                starts = [ (id, StartPos( float(s['x']), float(s['y']), float(s['w']) )) for id , s in start_positions_aux.iterrows() ]
+                walls = [ Obstacle(float(row['x1']), float(row['y1']), float(row['x2']), float(row['y2'])) for index, row in walls_aux.iterrows()]
+                goals = [ Goal(int(f['fid']), float(f['x']), float(f['y'])) for _, f in feeders_aux.iterrows() ]
+                starts = [ (id, StartingPosition( float(s['x']), float(s['y']), float(s['w']) )) for id , s in start_positions_aux.iterrows() ]
 
                 args += [(s , g, walls) for g in goals for (id,s) in starts ]
                 filenames += [ filename for g in goals for (id,s) in starts ]

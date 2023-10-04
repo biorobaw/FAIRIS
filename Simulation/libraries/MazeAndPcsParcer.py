@@ -46,7 +46,8 @@ def parse_all_position_type(xml_positions):
     if xml_positions is None:
         return pd.DataFrame(columns=['x', 'y', 'theta'])
     return pd.concat([pd.DataFrame(columns=['x', 'y', 'theta'])] + [parse_position(xml_pos) for xml_pos in
-                                                                xml_positions.findall('pos')]).reset_index(drop=True)
+                                                                    xml_positions.findall('pos')]).reset_index(
+        drop=True)
 
 
 def parse_maze(file):
@@ -58,3 +59,15 @@ def parse_maze(file):
     landmarks = parse_all_landmarks(root)
 
     return walls, goals, experiment_start_positions, habituation_start_positions, landmarks
+
+
+def parse_maze_for_wavefront(file):
+    root = ET.parse(file).getroot()
+    experiment_start_positions = parse_all_position_type(root.find('experimentStartPositions'))
+    habituation_start_positions = parse_all_position_type(root.find('habituationStartPositions'))
+    starting_positions = pd.concat([experiment_start_positions, habituation_start_positions])
+    walls = parse_all_obsticles(root)
+    goals = parse_all_goals(root)
+    landmarks = parse_all_landmarks(root)
+
+    return walls, goals, starting_positions

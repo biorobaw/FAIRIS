@@ -10,6 +10,7 @@ IMPORTABLE EXTERNPROTO "../protos/ROSbot/ROSbot_Camera.proto"
 IMPORTABLE EXTERNPROTO "../protos/WorldObjects/Landmark.proto"
 
 WorldInfo {
+  ERP 0.6
 }
 Viewpoint {
   orientation -0.5773466778819134 0.5773466060513335 0.5773575235672647 2.0943301017787865
@@ -26,7 +27,7 @@ Floor {
 }
 DEF Agent Rosbot {
   translation 3.068860920170147e-12 -1.3155904555854636e-09 -0.000562585249692632
-  rotation -1.584138066379736e-05 1.596003898658653e-05 0.9999999997471639 1.5700000002428123
+  rotation 0 0 1 1.57
   controller "<extern>"
   supervisor TRUE
   cameraSlot [
