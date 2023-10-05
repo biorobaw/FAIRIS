@@ -277,14 +277,6 @@ class RosBot(Supervisor):
             if end_bearing - margin_error <= self.get_bearing() <= end_bearing + margin_error:
                 self.stop()
                 break
-            if counter % 500 == 0:
-                is_flat, in_bounds = self.check_if_robot_safe()
-                if not is_flat:
-                    self.stop()
-                    self.correct_placement()
-                if not in_bounds:
-                    self.stop()
-                    self.move_to_random_experiment_start()
 
 
     # Rotates the robot by the amount degree. Only rotates until robot reaches the calculated end_bearing
@@ -309,13 +301,6 @@ class RosBot(Supervisor):
             if (min(self.lidar.getRangeImage()[345:455]) < .4):
                 self.slow_stop()
                 break
-            is_flat, in_bounds = self.check_if_robot_safe()
-            if not is_flat:
-                self.stop()
-                self.correct_placement()
-            if not in_bounds:
-                self.stop()
-                self.move_to_random_experiment_start()
 
     # Moves the robot forward in a straight line by the amount distance (in mm)
     def move_forward_no_PID(self, distance, velocity=20, margin_error=.01):
