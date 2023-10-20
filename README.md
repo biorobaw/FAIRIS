@@ -1,4 +1,4 @@
-# Framework for Artificial Intelligent Robots In Simulation (FAIRIS)
+# FAIRIS
 
 FAIRIS is a project framework that allows you to implement navigational control logic directly on the open-source robotic simulation platform Webots. With this framework, you can create your own Webots controller without the need to set up a simulated environment or robot, as we provide all the materials required to get started.
 
@@ -14,7 +14,14 @@ To work with FAIRIS, ensure that your system meets the following requirements:
 
 Follow these steps to set up FAIRIS on your local machine:
 
-1. Clone this repository onto your device.
+1. Clone this repository onto your device. 
+   1. There are numerous ways to achieve this, and you can decide which option is best for you. Please note that if 
+      you are going to be using this repo for a course or for an extended amount of time we recommend that you clone 
+      the repo and preform pulls when an update is pushed. A complete guide on how to clone github repositories can 
+      be found [here.](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository)
+### Clone command
+   ```git clone https://github.com/biorobaw/FAIRIS.git```
+
 2. Open a terminal session (on MacOS or Linux) or a command shell (on Windows).
 
 ### Launching Terminal on MacOS
@@ -42,8 +49,8 @@ setup $ python3 setup.py
 
 ### Windows
 ```shell
-FAIRIS % cd setup
-setup % python setup.py
+FAIRIS $ cd setup
+setup $ python setup.py
 ```
 
 Running the `setup.py` script will create a Python virtual environment (venv) and install all the necessary Python libraries to run FAIRIS. The script will also configure Webots so that any additional libraries created by the user can be imported and utilized.
@@ -63,8 +70,19 @@ For detailed instructions on configuring PyCharm to integrate with Webots, refer
 To test if FAIRIS has been set up properly, follow these steps:
 
 1. Launch Webots and open the world file located in `FAIRIS -> Simulation -> worlds -> StartingWorld.wbt`.
-2. Once Webots loads the world, you should see the Example controller running, which adds walls and places the robot in a starting location.
-3. The robot will perform 8 actions, after which the simulation will reset.
-4. By selecting the play button on the Webots interface, you will see this process repeat.
+2. Once Webots loads the world, you should see the Template controller running, which adds walls and places the robot 
+   in a starting location.
+3. The robot controller will print various sensor readings and move approximately 1.5 meters before stopping.
+4. By selecting the rest button on the Webots interface, you will see this process repeat.
 
 Now you have successfully set up FAIRIS, and you can start developing your robot controllers in Webots using Python. Happy coding!
+
+# Guide for Webot Contoller Creation
+
+A detailed guide for creating a new Webot Robot Controller can be found [here](Simulation/controllers/README.md).
+
+# RosBot Library Documentaion
+
+We provide a library which allows users to add a Robot Object to their controllers. The provided Library includes a 
+Python class called ```RosBot``` that can be instantiate in a controller and provides functions to access sensors, 
+motors, and load in objects in the simulated environment. Documentation of this library can be found [here](Simulation/libraries/README.md).
