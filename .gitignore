@@ -166,3 +166,7 @@ cython_debug/
 Simulation/controllers/*
 Simulation/GeneratedPCNetworks/*
 Simulation/worlds/mazes/Experiment1/Paths/*
+SavedModels/*
+!Simulation/libraries/RobotLib
+!Simulation/libraries/SimulationLib
+!Simulation/libraries/README.md
