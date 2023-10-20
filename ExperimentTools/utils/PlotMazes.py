@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 from matplotlib import collections as pycol
 from matplotlib import patches
 
-from Simulation.libraries.Environment import Maze
+from Simulation.libraries.SimulationLib.Environment import Maze
 
 
 def make_maze_plot_no_pc(maze_file="Simulation/worlds/mazes/Experiment1/WM00.xml"):

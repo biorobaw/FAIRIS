@@ -1,11 +1,7 @@
 import operator
-import os
-from scipy.spatial.transform import Rotation as R
 from ExperimentTools.utils.DataFunctions import *
-from Simulation.libraries.Environment import *
+from Simulation.libraries.SimulationLib.Environment import *
 from controller import Supervisor
-
-os.chdir('..')
 
 action_set = {
     0: [0, .5],
@@ -380,6 +376,16 @@ class RosBot(Supervisor):
         self.rotate_to(action[0])
         self.move_forward_with_PID(action[1])
 
+    def perform_training_action_telaport(self,action_index):
+        action = action_set.get(action_index)
+        curr_x, curr_y, curr_theta = self.get_robot_pose()
+        action_theta = math.radians(action[0])
+        new_x = curr_x + .5 * math.cos(action_theta)
+        new_y = curr_y + .5 * math.sin(action_theta)
+        self.teleport_robot(x=new_x,y=new_y,theta=action_theta)
+        return self.get_robot_pose()
+
+
     def get_possible_actions(self):
         min_action_distance = .8
         while self.experiment_supervisor.step(self.timestep) != -1:
@@ -400,12 +406,12 @@ class RosBot(Supervisor):
 
     def get_possible_training_action_mask(self):
         available_actions = np.array(self.get_possible_actions())
-        return np.multiply(available_actions,1)
+        return np.array(np.multiply(available_actions,1),dtype=np.float32)
 
     def check_if_action_is_possible(self, action_index=-1):
         min_action_distance = .8
         if action_index == -1:
-            if min(self.lidar.getRangeImage()[360:460]) > min_action_distance:
+            if min(self.lidar.getRangeImage()[340:460]) > min_action_distance:
                 return True
             else:
                 return False
@@ -417,16 +423,6 @@ class RosBot(Supervisor):
             else:
                 return False
 
-        # while self.experiment_supervisor.step(self.timestep) != -1:
-        #     if action_index == -1:
-        #         if min(self.lidar.getRangeImage()[360:460]) > min_action_distance:
-        #             return True
-        #         else:
-        #             return False
-        #     else:
-        #         available_actions = self.get_possible_actions()
-        #         bin_index = (self.get_closest_action_index() - action_index) % 8
-        #         return available_actions[bin_index]
 
     # Supervisor Functions: allows robot to control the simulation
 
@@ -518,11 +514,13 @@ class RosBot(Supervisor):
         else:
             starting_position = self.maze.experiment_starting_location[index]
         self.teleport_robot(starting_position.x, starting_position.y, theta=starting_position.theta)
+        return self.get_robot_pose()
 
     # Moves the robot to a random starting position
     def move_to_random_experiment_start(self):
         starting_position = self.maze.get_random_experiment_starting_position()
         self.teleport_robot(starting_position.x, starting_position.y, theta=starting_position.theta)
+        return self.get_robot_pose()
 
     # Moves the robot to a random starting position
     def move_to_habituation_start(self, index=-1):
@@ -531,12 +529,19 @@ class RosBot(Supervisor):
         else:
             starting_position = self.maze.habituation_start_location[index]
         self.teleport_robot(starting_position.x, starting_position.y, theta=starting_position.theta)
+        return self.get_robot_pose()
 
     def check_at_goal(self):
         current_x, current_y, currentcurrent_z = self.robot_translation_field.getSFVec3f()
         goal_x, goal_y = self.maze.get_goal_location()
         distance_to_goal = math.sqrt((current_x - goal_x) ** 2 + (current_y - goal_y) ** 2)
         return distance_to_goal < 0.8
+
+    def get_dist_to_goal(self):
+        current_x, current_y, currentcurrent_z = self.robot_translation_field.getSFVec3f()
+        goal_x, goal_y = self.maze.get_goal_location()
+        distance_to_goal = math.sqrt((current_x - goal_x) ** 2 + (current_y - goal_y) ** 2)
+        return distance_to_goal
 
     def show_loaded_pc_network(self,pc_network):
         for pc in pc_network.pc_list:

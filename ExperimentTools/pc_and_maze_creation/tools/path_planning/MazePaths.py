@@ -1,8 +1,8 @@
 import pickle
 
 from ExperimentTools.pc_and_maze_creation.tools.path_planning.wavefront_planner import wave_front_planner, get_path
-from Simulation.libraries.MazeAndPcsParcer import parse_maze_for_wavefront
-from Simulation.libraries.Environment import Maze
+from Simulation.libraries.SimulationLib.MazeAndPcsParcer import parse_maze_for_wavefront
+from Simulation.libraries.SimulationLib.Environment import Maze
 
 
 class MazePaths:

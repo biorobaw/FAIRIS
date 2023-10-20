@@ -1,12 +1,11 @@
 import os
-import pickle
 import time
 from multiprocessing import Pool
 
 import numpy as np
 from shapely.geometry import Point, LineString
 
-from Simulation.libraries.MazeAndPcsParcer import *
+from Simulation.libraries.SimulationLib.MazeAndPcsParcer import *
 
 # This file divides space in a grid, and for each cell it approximates the distance to the closest subgoal (obstacle corner) - feeders are ignored
 

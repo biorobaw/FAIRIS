@@ -1,3 +1,4 @@
+import os
 import xml.etree.ElementTree as ET
 
 import pandas as pd
@@ -51,6 +52,7 @@ def parse_all_position_type(xml_positions):
 
 
 def parse_maze(file):
+    print(os.getcwd())
     root = ET.parse(file).getroot()
     experiment_start_positions = parse_all_position_type(root.find('experimentStartPositions'))
     habituation_start_positions = parse_all_position_type(root.find('habituationStartPositions'))

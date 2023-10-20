@@ -29,7 +29,7 @@ class PlaceCell:
         self.min_activation = min_activation
         self.radius_tolerance = self.radius + self.alpha
         self.radius_squared = self.radius_tolerance**2
-        self.k = math.log(self.min_activation/self.radius_squared)
+        self.k = math.log(self.min_activation)/self.radius_squared
         self.activity = 0.0
 
 
@@ -42,10 +42,11 @@ class PlaceCell:
         dx = self.center_x - robot_x
         dy = self.center_y - robot_y
         r2 = dx**2 + dy**2
-        if r2 <= self.radius_squared:
-            self.activity = math.exp(self.k * r2)
-        else:
-            self.activity = 0.0
+        self.activity = math.exp(self.k * r2)
+        # if r2 <= self.radius_squared:
+        #     self.activity = math.exp(self.k * r2)
+        # else:
+        #     self.activity = 0.0
 
 
 class PlaceCellNetwork:
@@ -94,9 +95,10 @@ class PlaceCellNetwork:
             sum += pc.activity
         return sum
 
-    def get_all_pc_activations_normalized(self):
+    def get_all_pc_activations_normalized(self, robot_x, robot_y):
+        self.activate_pc_network(robot_x=robot_x,robot_y=robot_y)
         self.normilize_all_pc()
-        return np.array([pc.activity for pc in self.pc_list])
+        return np.array([pc.activity for pc in self.pc_list],dtype=np.float32)
 
     def print_pc_activations(self):
         for pc in self.pc_list:
@@ -105,5 +107,6 @@ class PlaceCellNetwork:
         total_activation = self.get_total_pc_activation()
         if total_activation == 0:
             total_activation = 1
+            print("Shit")
         for pc in self.pc_list:
             pc.activity = pc.activity/total_activation

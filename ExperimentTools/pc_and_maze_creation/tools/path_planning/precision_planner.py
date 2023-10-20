@@ -1,7 +1,6 @@
-import os, sys, time
+import os, time
 import astar
 from shapely.geometry import Point, LineString
-import pandas as pd
 import math
 from multiprocessing import Pool
 
@@ -15,10 +14,10 @@ from multiprocessing import Pool
 os.chdir('../../..')
 # This file divides space in a grid, and for each cell it approximates the distance to the closest subgoal (obstacle corner) - feeders are ignored
 
-from Simulation.libraries.MazeAndPcsParcer import *
-from Simulation.libraries.Environment import Obstacle
-from Simulation.libraries.Environment import Goal
-from Simulation.libraries.Environment import StartingPosition
+from Simulation.libraries.SimulationLib.MazeAndPcsParcer import *
+from Simulation.libraries.SimulationLib.Environment import Obstacle
+from Simulation.libraries.SimulationLib.Environment import Goal
+from Simulation.libraries.SimulationLib.Environment import StartingPosition
 
 ROBOT_STEP = 0.08
 FEEDING_DISTANCE = 0.1

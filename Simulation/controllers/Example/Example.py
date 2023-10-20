@@ -3,7 +3,7 @@ os.chdir("../..")
 
 """ExperimentSupervisor controller."""
 from BiologyTools.PlaceCellLibrary import PlaceCellNetwork
-from Simulation.libraries.RosBot import RosBot
+from Simulation.libraries.RobotLib.RosBot import RosBot
 
 
 maze_file = 'worlds/mazes/Samples/WM00.xml'

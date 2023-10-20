@@ -10,7 +10,8 @@ IMPORTABLE EXTERNPROTO "../protos/ROSbot/ROSbot_Camera.proto"
 IMPORTABLE EXTERNPROTO "../protos/WorldObjects/Landmark.proto"
 
 WorldInfo {
-  ERP 0.6
+  ERP 1
+  randomSeed 25
 }
 Viewpoint {
   orientation -0.5773466778819134 0.5773466060513335 0.5773575235672647 2.0943301017787865

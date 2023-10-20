@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from matplotlib import collections as pycol
 from matplotlib import patches
 
-from Simulation.libraries.MazeAndPcsParcer import parse_maze
+from Simulation.libraries.SimulationLib.MazeAndPcsParcer import parse_maze
 
 
 class RandomStartPositionGenerator:

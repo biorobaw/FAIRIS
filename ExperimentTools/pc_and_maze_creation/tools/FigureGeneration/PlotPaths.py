@@ -1,6 +1,4 @@
 from ExperimentTools.pc_and_maze_creation.tools.path_planning.wavefront_planner import *
-import ExperimentTools.pc_and_maze_creation.tools.path_planning.wavefront_planner
-from Simulation.libraries.Environment import *
 
 os.chdir('../../../../Simulation')
 print(os.getcwd())
