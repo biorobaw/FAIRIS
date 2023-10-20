@@ -170,3 +170,5 @@ SavedModels/*
 !Simulation/libraries/RobotLib
 !Simulation/libraries/SimulationLib
 !Simulation/libraries/README.md
+!Simulation/DataCache/temp.png
+Simulation/DataCache/*
