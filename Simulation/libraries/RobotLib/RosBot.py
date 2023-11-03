@@ -17,17 +17,17 @@ action_set = {
 
 class RelativeDistances:
     def __init__(self, lidar_range_image):
-        temp = [lidar_range_image[-60:], lidar_range_image[0:60]]
+        temp = [lidar_range_image[-60:], lidar_range_image[0:40]]
         self.rear_distances = []
         for r in temp:
             self.rear_distances += r
-        self.front_right_distances = lidar_range_image[440:560]
-        self.right_distances = lidar_range_image[540:660]
-        self.rear_right_distances = lidar_range_image[640:760]
-        self.front_distances = lidar_range_image[340:460]
-        self.rear_left_distances = lidar_range_image[40:160]
-        self.left_distances = lidar_range_image[140:260]
-        self.front_left_distances = lidar_range_image[240:360]
+        self.front_right_distances = lidar_range_image[460:540]
+        self.right_distances = lidar_range_image[560:640]
+        self.rear_right_distances = lidar_range_image[660:740]
+        self.front_distances = lidar_range_image[360:440]
+        self.rear_left_distances = lidar_range_image[60:140]
+        self.left_distances = lidar_range_image[160:240]
+        self.front_left_distances = lidar_range_image[260:340]
         self.distance_bins = [self.front_distances,
                               self.front_right_distances,
                               self.right_distances,
@@ -387,7 +387,7 @@ class RosBot(Supervisor):
 
 
     def get_possible_actions(self):
-        min_action_distance = .8
+        min_action_distance = .7
         while self.experiment_supervisor.step(self.timestep) != -1:
             relative_distances = RelativeDistances(lidar_range_image=self.lidar.getRangeImage())
             available_actions = [0] * 8
@@ -409,16 +409,16 @@ class RosBot(Supervisor):
         return np.array(np.multiply(available_actions,1),dtype=np.float32)
 
     def check_if_action_is_possible(self, action_index=-1):
-        min_action_distance = .8
+        min_action_distance = .7
         if action_index == -1:
-            if min(self.lidar.getRangeImage()[340:460]) > min_action_distance:
+            if min(self.lidar.getRangeImage()[360:440]) > min_action_distance:
                 return True
             else:
                 return False
         else:
             action = action_set.get(action_index)
             self.rotate_to(action[0])
-            if min(self.lidar.getRangeImage()[350:450]) > min_action_distance:
+            if min(self.lidar.getRangeImage()[360:440]) > min_action_distance:
                 return True
             else:
                 return False

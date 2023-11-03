@@ -8,15 +8,15 @@ import numpy as np
 
 class CriticNetwork(nn.Module):
     def __init__(self, beta, input_dims, n_actions, fc1_dims=256, fc2_dims=256,
-            name='critic', chkpt_dir='SavedModels'):
+            name='critic', ver_name='', chkpt_dir='SavedModels/SAC'):
         super(CriticNetwork, self).__init__()
         self.input_dims = input_dims
         self.fc1_dims = fc1_dims
         self.fc2_dims = fc2_dims
         self.n_actions = n_actions
-        self.name = name
+        self.name = name+ver_name
         self.checkpoint_dir = chkpt_dir
-        self.checkpoint_file = os.path.join(self.checkpoint_dir, name+'_sac')
+        self.checkpoint_file = os.path.join(self.checkpoint_dir, self.name+'_sac')
 
         self.fc1 = nn.Linear(self.input_dims[0]+n_actions, self.fc1_dims)
         self.fc2 = nn.Linear(self.fc1_dims, self.fc2_dims)
@@ -45,14 +45,14 @@ class CriticNetwork(nn.Module):
 
 class ValueNetwork(nn.Module):
     def __init__(self, beta, input_dims, fc1_dims=256, fc2_dims=256,
-            name='value', chkpt_dir='SavedModels'):
+            name='value', ver_name='',  chkpt_dir='SavedModels/SAC'):
         super(ValueNetwork, self).__init__()
         self.input_dims = input_dims
         self.fc1_dims = fc1_dims
         self.fc2_dims = fc2_dims
-        self.name = name
+        self.name = name + ver_name
         self.checkpoint_dir = chkpt_dir
-        self.checkpoint_file = os.path.join(self.checkpoint_dir, name+'_sac')
+        self.checkpoint_file = os.path.join(self.checkpoint_dir, self.name+'_sac')
 
         self.fc1 = nn.Linear(*self.input_dims, self.fc1_dims)
         self.fc2 = nn.Linear(self.fc1_dims, fc2_dims)
@@ -81,15 +81,15 @@ class ValueNetwork(nn.Module):
 
 class ActorNetwork(nn.Module):
     def __init__(self, alpha, input_dims, max_action, fc1_dims=256,
-            fc2_dims=256, n_actions=8, name='actor', chkpt_dir='SavedModels'):
+            fc2_dims=256, n_actions=8, name='actor', ver_name='',chkpt_dir='SavedModels/SAC'):
         super(ActorNetwork, self).__init__()
         self.input_dims = input_dims
         self.fc1_dims = fc1_dims
         self.fc2_dims = fc2_dims
         self.n_actions = n_actions
-        self.name = name
+        self.name = name+ver_name
         self.checkpoint_dir = chkpt_dir
-        self.checkpoint_file = os.path.join(self.checkpoint_dir, name+'_sac')
+        self.checkpoint_file = os.path.join(self.checkpoint_dir, self.name+'_sac')
         self.max_action = max_action
         self.reparam_noise = 1e-6
 

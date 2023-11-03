@@ -1,9 +1,13 @@
 import numpy as np
+import torch
+# torch.manual_seed(69)
+# np.random.seed(420)
 import pickle
 from tf_agents.environments import py_environment
 from tf_agents.specs import array_spec
 from Simulation.libraries.RobotLib.RosBot import RosBot
 import gym
+from gym.spaces import Discrete
 
 maze_file_dir = 'Simulation/worlds/mazes/Experiment1/'
 
@@ -18,6 +22,7 @@ class WebotsEnv(py_environment.PyEnvironment):
         self.robot = RosBot()
         self.robot.load_environment(maze_file_dir + maze_file + '.xml')
         self.set_mode()
+        self.action_space = Discrete(n=8)
 
         with open("Simulation/GeneratedPCNetworks/" + pc_network_name, 'rb') as pc_file:
             self.experiment_pc_network = pickle.load(pc_file)
@@ -26,14 +31,14 @@ class WebotsEnv(py_environment.PyEnvironment):
 
         # TF-Agents specs
         self._action_spec = array_spec.BoundedArraySpec(shape=(), dtype=np.float32, minimum=0, maximum=1, name='action')
-        self._observation_spec = array_spec.BoundedArraySpec(shape=(self.num_place_cells,), dtype=np.float32, minimum=0,
+        self._observation_spec = array_spec.BoundedArraySpec(shape=(self.num_place_cells + self.action_space.n,), dtype=np.float32, minimum=0,
                                                        maximum=1, name='sensor_data')
 
     def action_spec(self):
         return self._action_spec
 
     def observation_spec(self):
-        return array_spec.BoundedArraySpec(shape=(self.num_place_cells,), dtype=np.float32, minimum=0,
+        return array_spec.BoundedArraySpec(shape=(self.num_place_cells + self.action_space.n,), dtype=np.float32, minimum=0,
                                                        maximum=1, name='sensor_data')
 
     def _reset(self):
@@ -47,29 +52,36 @@ class WebotsEnv(py_environment.PyEnvironment):
             robot_x, robot_y, robot_theta = self.robot.move_to_habituation_start(index=starting_index)
         self.trial_counter += 1
         self.robot.experiment_supervisor.simulationResetPhysics()
-        initial_observation = np.array(self.experiment_pc_network.get_all_pc_activations_normalized(robot_x, robot_y),
-                                    dtype=np.float32)
+
+        PC_Activations = self.experiment_pc_network.get_all_pc_activations_normalized(robot_x, robot_y)
+        avalible_actions = self.robot.get_possible_actions()
+        initial_observation = np.concatenate([PC_Activations, avalible_actions]).astype(np.float32)
+        # initial_observation = np.array(self.experiment_pc_network.get_all_pc_activations_normalized(robot_x, robot_y), dtype=np.float32)
         return initial_observation
 
     def _step(self, action):
         self.current_step += 1
-        action = np.argmax(action)
+        reward = 0
         if self.robot.check_if_action_is_possible(action):
             robot_x, robot_y, robot_theta = self.robot.perform_training_action_telaport(action)
         else:
             robot_x, robot_y, robot_theta = self.robot.get_robot_pose()
-        observation = np.array(self.experiment_pc_network.get_all_pc_activations_normalized(robot_x, robot_y),
-                                    dtype=np.float32)
-        # print("Step observation shape:", observation.shape)
+            reward += -2
+        PC_Activations = self.experiment_pc_network.get_all_pc_activations_normalized(robot_x, robot_y)
+        avalible_actions = self.robot.get_possible_actions()
+
+        # observation = np.array(self.experiment_pc_network.get_all_pc_activations_normalized(robot_x, robot_y), dtype=np.float32)
+
+        observation = np.concatenate([PC_Activations, avalible_actions]).astype(np.float32)
 
         if self.robot.check_at_goal():
-            reward = 10.0  # Explicitly making sure it's float.
+            reward += 10.0  # Explicitly making sure it's float.
             done = True
-        # elif self.current_step >= self.max_steps_per_episode:
-        #     reward = 0.0  # Explicitly making sure it's float.
-        #     done = True
+        elif self.current_step >= self.max_steps_per_episode:
+            reward += 0.0  # Explicitly making sure it's float.
+            done = True
         else:
-            reward = -self.robot.get_dist_to_goal()/4.243
+            reward += -self.robot.get_dist_to_goal()/4.243
             done = False
 
         reward = np.array(reward, dtype=np.float32)

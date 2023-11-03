@@ -1,36 +1,66 @@
+import numpy as np
 import torch as T
 import torch.nn.functional as F
-from Simulation.libraries.UtilsRL.ReplayBuffer import ReplayBuffer
+
 from Simulation.libraries.SAC.Networks import ActorNetwork, CriticNetwork, ValueNetwork
+from Simulation.libraries.UtilsRL.ReplayBuffer import ReplayBuffer
 
 
 class Agent():
     def __init__(self, alpha=0.0003, beta=0.0003, input_dims=[8],
                  env=None, gamma=0.95, n_actions=8, max_size=1000000, tau=0.005,
-                 layer1_size=256, layer2_size=256, batch_size=256, reward_scale=4):
+                 layer1_size=256, layer2_size=256, batch_size=256, reward_scale=4, ver_name=''):
         self.gamma = gamma
         self.tau = tau
         self.memory = ReplayBuffer(max_size, input_dims, n_actions)
         self.batch_size = batch_size
         self.n_actions = n_actions
 
-        self.actor = ActorNetwork(alpha, input_dims, n_actions=n_actions,
-                                  name='actor', max_action=1)
-        self.critic_1 = CriticNetwork(beta, input_dims, n_actions=n_actions,
-                                      name='critic_1')
-        self.critic_2 = CriticNetwork(beta, input_dims, n_actions=n_actions,
-                                      name='critic_2')
-        self.value = ValueNetwork(beta, input_dims, name='value')
-        self.target_value = ValueNetwork(beta, input_dims, name='target_value')
+        self.actor = ActorNetwork(alpha,
+                                  input_dims,
+                                  fc1_dims=layer1_size,
+                                  fc2_dims=layer2_size,
+                                  n_actions=n_actions,
+                                  name='actor',
+                                  ver_name=ver_name,
+                                  max_action=1)
+        self.critic_1 = CriticNetwork(beta,
+                                      input_dims,
+                                      fc1_dims=layer1_size,
+                                      fc2_dims=layer2_size,
+                                      n_actions=n_actions,
+                                      name='critic_1',
+                                      ver_name=ver_name)
+        self.critic_2 = CriticNetwork(beta,
+                                      input_dims,
+                                      n_actions=n_actions,
+                                      fc1_dims=layer1_size,
+                                      fc2_dims=layer2_size,
+                                      name='critic_2',
+                                      ver_name=ver_name)
+        self.value = ValueNetwork(beta,
+                                  input_dims,
+                                  fc1_dims=layer1_size,
+                                  fc2_dims=layer2_size,
+                                  name='value',
+                                  ver_name=ver_name)
+        self.target_value = ValueNetwork(beta,
+                                         input_dims,
+                                         fc1_dims=layer1_size,
+                                         fc2_dims=layer2_size,
+                                         name='target_value',
+                                         ver_name=ver_name)
 
         self.scale = reward_scale
         self.update_network_parameters(tau=1)
 
     def choose_action(self, observation):
-        state = T.Tensor([observation]).to(self.actor.device)
+        observation = np.array([observation])
+        state = T.Tensor(observation).to(self.actor.device)
         actions, _ = self.actor.sample_normal(state, reparameterize=False)
-
-        return actions.cpu().detach().numpy()[0]
+        action = actions.cpu().detach().numpy()[0]
+        action = np.argmax(action)
+        return action
 
     def remember(self, state, action, reward, new_state, done):
         self.memory.store_transition(state, action, reward, new_state, done)
@@ -72,7 +102,7 @@ class Agent():
             return
 
         state, action, reward, new_state, done = \
-            self.memory.sample_buffer(self.batch_size)
+            self.memory.strat_sample_buffer(self.batch_size)
 
         reward = T.tensor(reward, dtype=T.float).to(self.actor.device)
         done = T.tensor(done).to(self.actor.device)
