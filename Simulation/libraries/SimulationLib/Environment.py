@@ -93,7 +93,7 @@ class Maze:
 
     def make_maze_plot(self, display_width, display_height):
 
-        self.maze_figure, self.maze_figure_ax = plt.subplots(figsize=(display_width / 100, display_height / 100))
+        self.maze_figure, self.maze_figure_ax = plt.subplots(1, 1, figsize=(display_width / 100, display_height / 100))
 
         self.maze_figure_ax.add_collection(pycol.LineCollection(self.walls, linewidths=2))
 
@@ -227,13 +227,13 @@ class Obstacle:
 
 
 class Landmark:
-    def __init__(self, x, y, height=1.5, radius=.25, z=0.75, color=[1, 1, 1], id=0):
+    def __init__(self, x, y, height=1.5, radius=.25, color=[1, 1, 1], id=0):
         self.height = height
         self.radius = radius
         self.x = x
         self.y = y
-        self.z = z
-        self.translation = [x, y, z]
+        self.z = height/2
+        self.translation = [x, y, self.z]
         self.id = id
         self.color = color
 
@@ -243,14 +243,18 @@ class Landmark:
 
     def get_webots_size_string(self):
         txt = 'size {width:.2f} {length:.2f} {height:.2f}'
-        return txt.format(width=self.height, length=self.radius, height=self.radius - .01)
+        return txt.format(width=self.height, length=self.radius, height=self.radius-.01)
 
     def get_webots_color_string(self):
         txt = 'color {red:.2f} {green:.2f} {blue:.2f}'
         return txt.format(red=self.color[0], green=self.color[1], blue=self.color[2])
+    def get_webots_recognition_color_string(self):
+        txt = 'recognitionColors [{red:.2f} {green:.2f} {blue:.2f}]'
+        return txt.format(red=self.color[0], green=self.color[1], blue=self.color[2])
 
     def get_webots_node_string(self):
-        node_string = "{translation} {color} {size}".format(translation=self.get_webots_translation_string(),
+        node_string = "{translation} {color} {recognitionColors} {size}".format(translation=self.get_webots_translation_string(),
                                                             color=self.get_webots_color_string(),
+                                                            recognitionColors=self.get_webots_recognition_color_string(),
                                                             size=self.get_webots_size_string())
         return 'DEF Landmark_{id} Landmark '.format(id=self.id) + '{ ' + node_string + ' }'

@@ -6,7 +6,8 @@ FAIRIS is a project framework that allows you to implement navigational control 
 
 To work with FAIRIS, ensure that your system meets the following requirements:
 
-1. Python 3.9+: If you don't have Python 3.9 or above installed, you can find a guided tutorial on how to install or update Python [here](https://realpython.com/installing-python/) or [here](https://www.pythoncentral.io/how-to-update-python/).
+1. Python 3.10+: If you don't have Python 3.10 or above installed, you can find a guided tutorial on how to install or 
+   update Python [here](https://realpython.com/installing-python/) or [here](https://www.pythoncentral.io/how-to-update-python/).
 
 2. Cyberbotics Webots R2023b: FAIRIS works in conjunction with Webots version R2023b. You need to install this open-source software to utilize FAIRIS. A guided installation guide can be found [here](https://cyberbotics.com/doc/guide/installation-procedure).
 
@@ -44,7 +45,7 @@ Once in the terminal session or command shell, navigate to the `setup` directory
 ### MacOS and Linux
 ```shell
 FAIRIS $ cd setup
-setup $ python3 setup.py
+setup $ python3.10 setup.py
 ```
 
 ### Windows
