@@ -11,6 +11,7 @@ from gym.spaces import Discrete
 
 maze_file_dir = 'Simulation/worlds/mazes/Experiment1/'
 
+
 class WebotsEnv(py_environment.PyEnvironment):
     def __init__(self, maze_file, pc_network_name, max_steps_per_episode=200):
         self.maze_file = maze_file
@@ -20,26 +21,36 @@ class WebotsEnv(py_environment.PyEnvironment):
         self.trial_counter = 0
         self.starting_permutaions = np.random.permutation(4)
         self.robot = RosBot()
-        self.robot.load_environment(maze_file_dir + maze_file + '.xml')
         self.set_mode()
         self.action_space = Discrete(n=8)
 
+        self.robot.load_environment(maze_file_dir + maze_file + '.xml')
         with open("Simulation/GeneratedPCNetworks/" + pc_network_name, 'rb') as pc_file:
             self.experiment_pc_network = pickle.load(pc_file)
 
         self.num_place_cells = len(self.experiment_pc_network.pc_list)
 
         # TF-Agents specs
-        self._action_spec = array_spec.BoundedArraySpec(shape=(), dtype=np.float32, minimum=0, maximum=1, name='action')
-        self._observation_spec = array_spec.BoundedArraySpec(shape=(self.num_place_cells + self.action_space.n,), dtype=np.float32, minimum=0,
-                                                       maximum=1, name='sensor_data')
+        self._action_spec = array_spec.BoundedArraySpec(shape=(),
+                                                        dtype=np.float32,
+                                                        minimum=0.0,
+                                                        maximum=1.0,
+                                                        name='action')
+        self._observation_spec = array_spec.BoundedArraySpec(shape=(self.num_place_cells + self.action_space.n,),
+                                                             dtype=np.float32,
+                                                             minimum=0.0,
+                                                             maximum=1.0,
+                                                             name='sensor_data')
 
     def action_spec(self):
         return self._action_spec
 
     def observation_spec(self):
-        return array_spec.BoundedArraySpec(shape=(self.num_place_cells + self.action_space.n,), dtype=np.float32, minimum=0,
-                                                       maximum=1, name='sensor_data')
+        return array_spec.BoundedArraySpec(shape=(self.num_place_cells + self.action_space.n,),
+                                           dtype=np.float32,
+                                           minimum=0.0,
+                                           maximum=1.0,
+                                           name='sensor_data')
 
     def _reset(self):
         self.current_step = 0
@@ -56,7 +67,7 @@ class WebotsEnv(py_environment.PyEnvironment):
         PC_Activations = self.experiment_pc_network.get_all_pc_activations_normalized(robot_x, robot_y)
         avalible_actions = self.robot.get_possible_actions()
         initial_observation = np.concatenate([PC_Activations, avalible_actions]).astype(np.float32)
-        # initial_observation = np.array(self.experiment_pc_network.get_all_pc_activations_normalized(robot_x, robot_y), dtype=np.float32)
+
         return initial_observation
 
     def _step(self, action):
@@ -68,11 +79,9 @@ class WebotsEnv(py_environment.PyEnvironment):
             robot_x, robot_y, robot_theta = self.robot.get_robot_pose()
             reward += -2
         PC_Activations = self.experiment_pc_network.get_all_pc_activations_normalized(robot_x, robot_y)
-        avalible_actions = self.robot.get_possible_actions()
+        available_actions = self.robot.get_possible_actions()
 
-        # observation = np.array(self.experiment_pc_network.get_all_pc_activations_normalized(robot_x, robot_y), dtype=np.float32)
-
-        observation = np.concatenate([PC_Activations, avalible_actions]).astype(np.float32)
+        observation = np.concatenate([PC_Activations, available_actions]).astype(np.float32)
 
         if self.robot.check_at_goal():
             reward += 10.0  # Explicitly making sure it's float.
@@ -81,11 +90,10 @@ class WebotsEnv(py_environment.PyEnvironment):
             reward += 0.0  # Explicitly making sure it's float.
             done = True
         else:
-            reward += -self.robot.get_dist_to_goal()/4.243
+            reward += -self.robot.get_dist_to_goal() / 4.243
             done = False
 
         reward = np.array(reward, dtype=np.float32)
-
 
         return observation, reward, done, []
 
@@ -93,9 +101,32 @@ class WebotsEnv(py_environment.PyEnvironment):
         pass
 
     def close(self):
-        self.robot.experiment_supervisor.simulationReset()
+        self.robot.reset_environment()
 
-    def set_mode(self, mode = 'train'):
+    def exit(self):
+        self.robot.experiment_supervisor.simulationReset()
+        self.robot.experiment_supervisor.simulationQuit(status=1)
+
+    def reload(self, maze_file, pc_network_name):
+        self.robot.load_environment(maze_file_dir + maze_file + '.xml')
+        with open("Simulation/GeneratedPCNetworks/" + pc_network_name, 'rb') as pc_file:
+            self.experiment_pc_network = pickle.load(pc_file)
+
+        self.num_place_cells = len(self.experiment_pc_network.pc_list)
+
+        # TF-Agents specs
+        self._action_spec = array_spec.BoundedArraySpec(shape=(),
+                                                        dtype=np.float32,
+                                                        minimum=0.0,
+                                                        maximum=1.0,
+                                                        name='action')
+        self._observation_spec = array_spec.BoundedArraySpec(shape=(self.num_place_cells + self.action_space.n,),
+                                                             dtype=np.float32,
+                                                             minimum=0.0,
+                                                             maximum=1.0,
+                                                             name='sensor_data')
+
+    def set_mode(self, mode='train'):
         self.mode = mode
 
 
