@@ -172,3 +172,5 @@ SavedModels/*
 !Simulation/libraries/README.md
 !Simulation/DataCache/temp.png
 Simulation/DataCache/*
+gaivi_scripts/*
+logs/*
