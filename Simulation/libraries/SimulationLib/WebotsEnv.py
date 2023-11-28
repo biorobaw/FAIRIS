@@ -95,15 +95,15 @@ class WebotsEnv(py_environment.PyEnvironment):
 
         reward = np.array(reward, dtype=np.float32)
 
-        return observation, reward, done, []
+        return observation, reward, done, [robot_x,robot_y]
 
     def render(self, mode='human'):
         pass
 
-    def close(self):
+    def reset_environment(self):
         self.robot.reset_environment()
 
-    def exit(self):
+    def close(self):
         self.robot.experiment_supervisor.simulationReset()
         self.robot.experiment_supervisor.simulationQuit(status=1)
 

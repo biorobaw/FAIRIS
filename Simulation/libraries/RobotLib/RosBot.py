@@ -452,13 +452,12 @@ class RosBot(Supervisor):
             self.landmark_nodes.append(self.experiment_supervisor.getFromDef('Landmark'))
 
     def reset_environment(self):
+        self.teleport_robot(theta=math.pi / 2)
         total_nodes = len(self.obstical_nodes) + len(self.boundry_wall_nodes) + len(self.landmark_nodes)
         for i in range(total_nodes):
             self.children_field.removeMF(-1)
         self.maze.close_maze_figure()
-
-
-
+        self.sensor_calibration()
 
     # Teleports the robot to the point (x,y,z)
     def teleport_robot(self, x=0.0, y=0.0, z=0.0, theta=math.pi):
