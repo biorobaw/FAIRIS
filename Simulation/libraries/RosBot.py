@@ -293,11 +293,11 @@ class RosBot(Supervisor):
         current_position = self.gps.getValues()[0:2]
 
         dist = math.dist(current_position, [x, y])
-        print(f'{dist=}')
+        # print(f'{dist=}')
 
         count = 0
         timestep = math.floor(8 * dist / 1.5)
-        print(f'{timestep=}')
+        # print(f'{timestep=}')
 
         while self.experiment_supervisor.step(self.timestep) != -1:
             current_position = self.gps.getValues()[0:2]

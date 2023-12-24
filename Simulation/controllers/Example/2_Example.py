@@ -127,41 +127,50 @@ def split_segment(x1, y1, x2, y2, N):
 
 
 def getEncodingFromAngle(angle):
-    match angle:
-        case 90:
-            print('SLOW, FAST, MEDIUM, FAST')
-            return SLOW, FAST, MEDIUM, FAST
-        case 270:
-            print('FAST, SLOW, MEDIUM, FAST')
-            return FAST, SLOW, MEDIUM, FAST
-        case 0:
-            print('MEDIUM, FAST, SLOW, FAST')
-            return MEDIUM, FAST, SLOW, FAST
-        case 135:
-            print('MEDIUM, SLOW, FAST, FAST')
-            return MEDIUM, SLOW, FAST, FAST
-        case 180:
-            print('SLOW, MEDIUM, FAST, FAST')
-            return SLOW, MEDIUM, FAST, FAST
-        case 45:
-            print('FAST, MEDIUM, SLOW, FAST')
-            return FAST, MEDIUM, SLOW, FAST
-        case default:
-            print(f'{angle=} not valid')
-            return FAST, FAST, FAST, FAST
+    if directions == 6:
+        match angle:
+            case 90:
+                print('SLOW, FAST, MEDIUM, FAST')
+                return SLOW, FAST, MEDIUM, FAST
+            case 270:
+                print('FAST, SLOW, MEDIUM, FAST')
+                return FAST, SLOW, MEDIUM, FAST
+            case 0:
+                print('MEDIUM, FAST, SLOW, FAST')
+                return MEDIUM, FAST, SLOW, FAST
+            case 135:
+                print('MEDIUM, SLOW, FAST, FAST')
+                return MEDIUM, SLOW, FAST, FAST
+            case 180:
+                print('SLOW, MEDIUM, FAST, FAST')
+                return SLOW, MEDIUM, FAST, FAST
+            case 45:
+                print('FAST, MEDIUM, SLOW, FAST')
+                return FAST, MEDIUM, SLOW, FAST
+            case default:
+                print(f'{angle=} not valid')
+                return FAST, FAST, FAST, FAST
+    else:
+        match angle:
+            case 90:
+                print('SLOW, FAST, SLOW')
+                return SLOW, FAST, SLOW
+            case 270:
+                print('FAST, SLOW, SLOW')
+                return FAST, SLOW, SLOW
 
 
-def moveRobot(x, y, angle, directions=6):
+def moveRobot(x, y, angle):
     print(f'Should predict {angle=}°')
 
     current_position = robot.gps.getValues()[0:2]
 
-    if directions == 2:
-        segments = 3
+    if directions == 6:
+        num_segments = 4
     else:
-        segments = 4
+        num_segments = 3
 
-    points = split_segment(current_position[0], current_position[1], x, y, 4)
+    points = split_segment(current_position[0], current_position[1], x, y, num_segments)
 
     velocities = getEncodingFromAngle(angle)
 
@@ -171,9 +180,9 @@ def moveRobot(x, y, angle, directions=6):
 
     for i in range(1, len(points)):
         pos1 = robot.forward_motion_to_xy(x=points[i][0], y=points[i][1], velocity=velocities[i - 1])
+        # print(f'Number of positions = {len(pos1)}')
         len_seg += len(pos1)
         segments.append(len_seg)
-        # print(f'Number of positions = {len(pos1)}')
         pos.extend(pos1)
 
     return pos, segments
@@ -225,10 +234,6 @@ def getPredictionFromActivations(activations, model):
     return angle[output]
 
 
-robot.teleport_robot(x=-4.5, y=-4.5)
-
-robot.step()
-
 print('\nLoading Model')
 start_time = time.monotonic()
 
@@ -237,78 +242,108 @@ model = keras.models.load_model(model_name)
 end_time = time.monotonic()
 executionTime = timedelta(seconds=end_time - start_time)
 
-print(f"--- {executionTime} to load model ---\n")
+print(f"--- {executionTime} to load {model_name} ---\n")
 
 print('\n')
 
-positions, segments = moveRobot(x=-0.5, y=-4.5, angle=45, directions=directions)
+if directions == 2:
+    robot.teleport_robot(x=-4.5, y=-3.5)
 
-activations = calculateActivations(positions, segments)
+    positions, segments = moveRobot(x=-0.5, y=-3.5, angle=90)
 
-prediction = getPredictionFromActivations(activations, model)
+    activations = calculateActivations(positions, segments)
 
-print(f'Turning {prediction}°')
-turnAngle = (robot.get_bearing() + prediction + 360) % 360
-robot.rotate_to(turnAngle, margin_error=1)
+    prediction = getPredictionFromActivations(activations, model)
 
-print('\n')
+    print(f'Turning {prediction}°')
+    turnAngle = (robot.get_bearing() + prediction + 360) % 360
+    robot.rotate_to(turnAngle, margin_error=1)
 
-positions, segments = moveRobot(x=4.5, y=0.5, angle=135, directions=directions)
+    print('\n')
 
-activations = calculateActivations(positions, segments)
+    positions, segments = moveRobot(x=-0.5, y=-0.5, angle=270)
 
-prediction = getPredictionFromActivations(activations, model)
+    activations = calculateActivations(positions, segments)
 
-print(f'Turning {prediction}°')
-turnAngle = (robot.get_bearing() + prediction + 360) % 360
-robot.rotate_to(turnAngle, margin_error=1)
+    prediction = getPredictionFromActivations(activations, model)
 
-print('\n')
+    print(f'Turning {prediction}°')
+    turnAngle = (robot.get_bearing() + prediction + 360) % 360
+    robot.rotate_to(turnAngle, margin_error=1)
 
-positions, segments = moveRobot(x=0.5, y=0.5, angle=270, directions=directions)
+    print('\n')
 
-activations = calculateActivations(positions, segments)
+elif directions == 6:
+    robot.teleport_robot(x=-4.5, y=-4.5)
 
-prediction = getPredictionFromActivations(activations, model)
+    positions, segments = moveRobot(x=-0.5, y=-4.5, angle=45)
 
-print(f'Turning {prediction}°')
-turnAngle = (robot.get_bearing() + prediction + 360) % 360
-robot.rotate_to(turnAngle, margin_error=1)
+    activations = calculateActivations(positions, segments)
 
-print('\n')
+    prediction = getPredictionFromActivations(activations, model)
 
-positions, segments = moveRobot(x=0.5, y=3.5, angle=90, directions=directions)
+    print(f'Turning {prediction}°')
+    turnAngle = (robot.get_bearing() + prediction + 360) % 360
+    robot.rotate_to(turnAngle, margin_error=1)
 
-activations = calculateActivations(positions, segments)
+    print('\n')
 
-prediction = getPredictionFromActivations(activations, model)
+    positions, segments = moveRobot(x=4.5, y=0.5, angle=135)
 
-print(f'Turning {prediction}°')
-turnAngle = (robot.get_bearing() + prediction + 360) % 360
-robot.rotate_to(turnAngle, margin_error=1)
+    activations = calculateActivations(positions, segments)
 
-print('\n')
+    prediction = getPredictionFromActivations(activations, model)
 
-positions, segments = moveRobot(x=-3.5, y=3.5, angle=180, directions=directions)
+    print(f'Turning {prediction}°')
+    turnAngle = (robot.get_bearing() + prediction + 360) % 360
+    robot.rotate_to(turnAngle, margin_error=1)
 
-activations = calculateActivations(positions, segments)
+    print('\n')
 
-prediction = getPredictionFromActivations(activations, model)
+    positions, segments = moveRobot(x=0.5, y=0.5, angle=270)
 
-print(f'Turning {prediction}°')
-turnAngle = (robot.get_bearing() + prediction + 360) % 360
-robot.rotate_to(turnAngle, margin_error=1)
+    activations = calculateActivations(positions, segments)
 
-print('\n')
+    prediction = getPredictionFromActivations(activations, model)
 
-positions, segments = moveRobot(x=0, y=3.5, angle=0, directions=directions)
+    print(f'Turning {prediction}°')
+    turnAngle = (robot.get_bearing() + prediction + 360) % 360
+    robot.rotate_to(turnAngle, margin_error=1)
 
-activations = calculateActivations(positions, segments)
+    print('\n')
 
-prediction = getPredictionFromActivations(activations, model)
+    positions, segments = moveRobot(x=0.5, y=3.5, angle=90)
 
-print(f'Turning {prediction}°')
-turnAngle = (robot.get_bearing() + prediction + 360) % 360
-robot.rotate_to(turnAngle, margin_error=1)
+    activations = calculateActivations(positions, segments)
+
+    prediction = getPredictionFromActivations(activations, model)
+
+    print(f'Turning {prediction}°')
+    turnAngle = (robot.get_bearing() + prediction + 360) % 360
+    robot.rotate_to(turnAngle, margin_error=1)
+
+    print('\n')
+
+    positions, segments = moveRobot(x=-3.5, y=3.5, angle=180)
+
+    activations = calculateActivations(positions, segments)
+
+    prediction = getPredictionFromActivations(activations, model)
+
+    print(f'Turning {prediction}°')
+    turnAngle = (robot.get_bearing() + prediction + 360) % 360
+    robot.rotate_to(turnAngle, margin_error=1)
+
+    print('\n')
+
+    positions, segments = moveRobot(x=0, y=3.5, angle=0)
+
+    activations = calculateActivations(positions, segments)
+
+    prediction = getPredictionFromActivations(activations, model)
+
+    print(f'Turning {prediction}°')
+    turnAngle = (robot.get_bearing() + prediction + 360) % 360
+    robot.rotate_to(turnAngle, margin_error=1)
 
 robot.experiment_supervisor.simulationReset()
