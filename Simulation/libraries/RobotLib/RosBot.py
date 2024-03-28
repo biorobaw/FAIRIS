@@ -3,16 +3,7 @@ from ExperimentTools.utils.DataFunctions import *
 from Simulation.libraries.SimulationLib.Environment import *
 from controller import Supervisor
 
-action_set = {
-    0: [0, .5],
-    1: [45, .5],
-    2: [90, .5],
-    3: [135, .5],
-    4: [180, .5],
-    5: [225, .5],
-    6: [270, .5],
-    7: [315, .5],
-}
+
 
 
 class RelativeDistances:
@@ -53,7 +44,7 @@ def calculate_motion_vector(x1, y1, x2, y2):
 class RosBot(Supervisor):
 
     # Initiilize an instance of Webots Harrison's RosBot
-    def __init__(self):
+    def __init__(self, action_length=0.5):
 
         # Inherent from Webots Robot Class: https://cyberbotics.com/doc/reference/robot
         self.experiment_supervisor = Supervisor()
@@ -73,6 +64,17 @@ class RosBot(Supervisor):
         self.wheel_radius = .043  # m
         self.axel_length = .265  # m
         self.robot_radius = .3086  # m
+        self.action_length = action_length
+        self.action_set = {
+            0: [0, self.action_length],
+            1: [45, self.action_length],
+            2: [90, self.action_length],
+            3: [135, self.action_length],
+            4: [180, self.action_length],
+            5: [225, self.action_length],
+            6: [270, self.action_length],
+            7: [315, self.action_length],
+        }
 
         # Experiment Variables
         self.previous_action_index = -1
@@ -116,6 +118,7 @@ class RosBot(Supervisor):
 
         self.rgb_camera = self.experiment_supervisor.getDevice('camera rgb')
         self.rgb_camera.enable(self.timestep)
+        self.rgb_camera.recognitionEnable(self.timestep)
 
         # Webots RpLidarA2: https://www.cyberbotics.com/doc/guide/lidar-sensors#slamtec-rplidar-a2
         self.lidar = self.experiment_supervisor.getDevice('lidar')
@@ -343,12 +346,12 @@ class RosBot(Supervisor):
         random_action_index = np.random.choice(8, 1, p=action_distribution)[0]
 
         if self.check_if_action_is_possible(random_action_index):
-            random_action = action_set.get(random_action_index)
+            random_action = self.action_set.get(random_action_index)
             self.rotate_to(random_action[0])
             self.move_forward_with_PID(random_action[1])
         else:
             random_action_index = np.argmax(action_distribution)
-            random_action = action_set.get(random_action_index)
+            random_action = self.action_set.get(random_action_index)
             self.rotate_to(random_action[0])
             self.move_forward_with_PID(random_action[1])
 
@@ -356,7 +359,7 @@ class RosBot(Supervisor):
         return random_action_index
 
     def perform_action_with_PID(self, action_index):
-        action = action_set.get(action_index)
+        action = self.action_set.get(action_index)
         if self.check_if_action_is_possible(action_index=action_index):
             self.rotate_to(action[0])
             self.move_forward_with_PID(action[1])
@@ -364,7 +367,7 @@ class RosBot(Supervisor):
             print("cant preform action")
 
     def perform_action_no_PID(self, action_index):
-        action = action_set.get(action_index)
+        action = self.action_set.get(action_index)
         if self.check_if_action_is_possible(action_index=action_index):
             self.rotate_to(action[0])
             self.move_forward_no_PID(500 * action[1])
@@ -372,22 +375,22 @@ class RosBot(Supervisor):
             print("cant preform action")
 
     def perform_training_action(self, action_index):
-        action = action_set.get(action_index)
+        action = self.action_set.get(action_index)
         self.rotate_to(action[0])
         self.move_forward_with_PID(action[1])
 
-    def perform_training_action_telaport(self,action_index):
-        action = action_set.get(action_index)
+    def perform_training_action_teleport(self, action_index):
+        action = self.action_set.get(action_index)
         curr_x, curr_y, curr_theta = self.get_robot_pose()
         action_theta = math.radians(action[0])
-        new_x = curr_x + .5 * math.cos(action_theta)
-        new_y = curr_y + .5 * math.sin(action_theta)
+        new_x = curr_x + self.action_length * math.cos(action_theta)
+        new_y = curr_y + self.action_length * math.sin(action_theta)
         self.teleport_robot(x=new_x,y=new_y,theta=action_theta)
         return self.get_robot_pose()
 
 
     def get_possible_actions(self):
-        min_action_distance = .7
+        min_action_distance = self.action_length +0.2
         while self.experiment_supervisor.step(self.timestep) != -1:
             relative_distances = RelativeDistances(lidar_range_image=self.lidar.getRangeImage())
             available_actions = [0] * 8
@@ -416,7 +419,7 @@ class RosBot(Supervisor):
             else:
                 return False
         else:
-            action = action_set.get(action_index)
+            action = self.action_set.get(action_index)
             self.rotate_to(action[0])
             if min(self.lidar.getRangeImage()[360:440]) > min_action_distance:
                 return True
