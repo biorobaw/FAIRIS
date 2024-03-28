@@ -52,7 +52,7 @@ def get_coordinates_from_dim(i, j, dimensions):
 
 
 def point_in_wall(point, wall):
-    return point.distance(wall) < 0.005  # at most 5mm away from wall
+    return point.distance(wall) < 0.8  # at most 5mm away from wall
 
 
 def wall_to_line_string(w):
@@ -180,8 +180,8 @@ def wave_front_planner(walls, feeders):
     print('running wave front planner')
     precision = 0.005
     num_actions = 8
-    step = 0.8
-    affordance = 0.1
+    step = 0.5
+    affordance = 0.2
     feeding_distance = 0.8
     d_theta = 2 * np.pi / num_actions
     actions = [(step * np.cos(i * d_theta), step * np.sin(i * d_theta)) for i in range(num_actions)]

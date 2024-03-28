@@ -133,7 +133,7 @@ class Maze:
         return self.goal_locations[0].x, self.goal_locations[0].y
 
 
-class Point:
+class MazePoint:
     def __init__(self, x, y):
         self.x = x
         self.y = y
@@ -142,13 +142,13 @@ class Point:
         return math.dist((self.x, self.y), (robot_position[0], robot_position[1])) - robot_position[2]
 
 
-class Goal(Point):
+class Goal(MazePoint):
     def __init__(self, x, y, id):
         super().__init__(x, y)
         self.goal_id = id
 
 
-class StartingPosition(Point):
+class StartingPosition(MazePoint):
     def __init__(self, x, y, theta):
         super().__init__(x, y)
         self.theta = theta
@@ -156,14 +156,14 @@ class StartingPosition(Point):
 
 class BoundaryWall:
     def __init__(self, x1, y1, x2, y2, height=0.5, width=0.012, id=0):
-        self.end_point1 = Point(x1, y1)
-        self.end_point2 = Point(x2, y2)
+        self.end_point1 = MazePoint(x1, y1)
+        self.end_point2 = MazePoint(x2, y2)
         self.height = height
         self.width = width
         self.length = math.dist((x1, y1), (x2, y2))
         self.id = id
-        self.center_mass = Point((self.end_point1.x + self.end_point2.x) / 2,
-                                 (self.end_point1.y + self.end_point2.y) / 2)
+        self.center_mass = MazePoint((self.end_point1.x + self.end_point2.x) / 2,
+                                     (self.end_point1.y + self.end_point2.y) / 2)
         self.dimensions = [self.width, self.length, self.height]
         self.translation = [(self.end_point1.x + self.end_point2.x) / 2,
                             (self.end_point1.y + self.end_point2.y) / 2,
@@ -192,14 +192,14 @@ class BoundaryWall:
 
 class Obstacle:
     def __init__(self, x1, y1, x2, y2, height=0.5, width=0.012, id=0):
-        self.end_point1 = Point(x1, y1)
-        self.end_point2 = Point(x2, y2)
+        self.end_point1 = MazePoint(x1, y1)
+        self.end_point2 = MazePoint(x2, y2)
         self.height = height
         self.width = width
         self.length = math.dist((x1, y1), (x2, y2))
         self.id = id
-        self.center_mass = Point((self.end_point1.x + self.end_point2.x) / 2,
-                                 (self.end_point1.y + self.end_point2.y) / 2)
+        self.center_mass = MazePoint((self.end_point1.x + self.end_point2.x) / 2,
+                                     (self.end_point1.y + self.end_point2.y) / 2)
         self.dimensions = [self.width, self.length, self.height]
         self.translation = [(self.end_point1.x + self.end_point2.x) / 2,
                             (self.end_point1.y + self.end_point2.y) / 2,

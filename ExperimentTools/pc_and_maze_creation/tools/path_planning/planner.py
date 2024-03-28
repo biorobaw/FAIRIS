@@ -13,8 +13,8 @@ from data.Wall import Wall
 from data.Feeder import Feeder
 from data.StartPos import StartPos
 
-class Node(Point):
 
+class Node(Point):
     next_id = 0
 
     def __init__(self, *args, **kwargs):
@@ -30,8 +30,8 @@ class Node(Point):
     def __hash__(self):
         return hash(id)
 
-def init_map_graph(origin, goal, walls):
 
+def init_map_graph(origin, goal, walls):
     # convert data to nodes:
     origin = Node(origin.x(), origin.y())
     goal = Node(goal.x(), goal.y())
@@ -42,17 +42,16 @@ def init_map_graph(origin, goal, walls):
     all_nodes = [origin, goal] + starts + ends
 
     # generate line segments
-    wall_segments = [ LineString( [starts[i], ends[i]]) for i in range(0, len(starts))]
+    wall_segments = [LineString([starts[i], ends[i]]) for i in range(0, len(starts))]
 
     # vertexes of same wall are adjacent
     for i in range(0, len(starts)):
         starts[i].add_neighbor(ends[i])
 
-
     # 2 vertexes not on the same wall are adjacent if they do not intersect any other wall
     for i in range(0, len(all_nodes)):
-        n1 =   all_nodes[i]
-        for j in range(i+1 , len(all_nodes)):
+        n1 = all_nodes[i]
+        for j in range(i + 1, len(all_nodes)):
             n2 = all_nodes[j]
 
             segment = LineString([n1, n2])
@@ -68,18 +67,14 @@ def init_map_graph(origin, goal, walls):
             if not intersects_wall:
                 n1.add_neighbor(n2)
 
-
     return origin, goal, all_nodes
 
 
-
-
-
 def find_path(origin, goal, walls):
-
     origin, goal, all_nodes = init_map_graph(origin, goal, walls)
 
-    path =  astar.find_path(origin, goal, neighbors_fnct=lambda n: n.neighbors, heuristic_cost_estimate_fnct=distance, distance_between_fnct=distance)
+    path = astar.find_path(origin, goal, neighbors_fnct=lambda n: n.neighbors, heuristic_cost_estimate_fnct=distance,
+                           distance_between_fnct=distance)
     path = [[n.x, n.y] for n in path]
     d = LineString(path).length
 
@@ -88,7 +83,6 @@ def find_path(origin, goal, walls):
 
 def distance(n1, n2):
     return n1.distance(n2)
-
 
 
 def generate_maze_metrics(folder):
@@ -100,26 +94,27 @@ def generate_maze_metrics(folder):
                 full_path = os.path.join(folder, filename)
                 walls_aux, feeders_aux, start_positions_aux = MazeParser.parse_maze(full_path)
 
-                walls = [ Wall(float(row['x1']), float(row['y1']), float(row['x2']), float(row['y2']), None) for index, row in walls_aux.iterrows()]
+                walls = [Wall(float(row['x1']), float(row['y1']), float(row['x2']), float(row['y2']), None) for
+                         index, row in walls_aux.iterrows()]
                 maze_results = []
 
                 for _, f in feeders_aux.iterrows():
                     goal = Feeder(int(f['fid']), float(f['x']), float(f['y']), None)
 
                     for pos_id, s in start_positions_aux.iterrows():
-                        start = StartPos( float(s['x']), float(s['y']), float(s['w']), None)
+                        start = StartPos(float(s['x']), float(s['y']), float(s['w']), None)
                         path, distance = find_path(goal, start, walls)
                         maze_results += [[filename, pos_id, distance]]
-                
-                results += maze_results        
+
+                results += maze_results
 
                 print()
             except:
                 print('error')
                 pass
-    results = pd.DataFrame(columns= ['maze','pos','distance'], data = results)
+    results = pd.DataFrame(columns=['maze', 'pos', 'distance'], data=results)
     save_file = os.path.join(folder, 'mazeMetrics.csv')
-    results.to_csv(save_file,index=False)
+    results.to_csv(save_file, index=False)
     print('created file ', save_file)
 
     return results

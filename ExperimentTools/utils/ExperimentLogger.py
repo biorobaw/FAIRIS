@@ -12,9 +12,9 @@ class ExperimentLogger:
         self.path_length_history.append(path_length)
 
 class EpisodeLogger:
-    def __init__(self):
-        self.path_xs = []
-        self.path_ys = []
+    def __init__(self,start_x,start_y):
+        self.path_xs = [start_x]
+        self.path_ys = [start_y]
         self.path_length = 0
 
     def log_step(self, robot_x, robot_y):

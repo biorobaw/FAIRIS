@@ -85,7 +85,6 @@ def parse_all_positions(xml_positions):
     return pd.concat(valid_data_frames, ignore_index=True)
 
 def parse_maze(file):
-    print(os.getcwd())
     root = ET.parse(file).getroot()
     experiment_start_positions = parse_all_positions(root.find('experimentStartPositions'))
     habituation_start_positions = parse_all_positions(root.find('habituationStartPositions'))
