@@ -1,12 +1,12 @@
 import os
-os.chdir("../..")
+os.chdir("../../..")
 
 """ExperimentSupervisor controller."""
 from BiologyTools.PlaceCellLibrary import PlaceCellNetwork
 from Simulation.libraries.RobotLib.RosBot import RosBot
 
 
-maze_file = 'worlds/mazes/Samples/WM00.xml'
+maze_file = 'Simulation/worlds/mazes/Samples/LandmarkExample.xml'
 
 # create the robot/supervisor instance.
 robot = RosBot()
