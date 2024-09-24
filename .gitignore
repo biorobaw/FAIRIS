@@ -34,7 +34,7 @@ MANIFEST
 *.manifest
 *.spec
 
-# Installer logs
+# Installer data
 pip-log.txt
 pip-delete-this-directory.txt
 
@@ -162,15 +162,12 @@ cython_debug/
 #.idea/
 
 # Dev code
-!Simulation/controllers/Example
-Simulation/controllers/*
-Simulation/GeneratedPCNetworks/*
-Simulation/worlds/mazes/Experiment1/Paths/*
-SavedModels/*
-!Simulation/libraries/RobotLib
-!Simulation/libraries/SimulationLib
-!Simulation/libraries/README.md
-!Simulation/DataCache/temp.png
-Simulation/DataCache/*
+!simulation/controllers/Example
+simulation/controllers/*
+data/*
+simulation/worlds/mazes/Experiment1/Paths/*
+data/SavedModels/*
+!data/DataCache/temp.png
+data/DataCache/*
 gaivi_scripts/*
-logs/*
+fairis_tools/experiment_tools/figure_generation/*

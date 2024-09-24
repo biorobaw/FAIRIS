@@ -80,10 +80,10 @@ Now you have successfully set up FAIRIS, and you can start developing your robot
 
 # Guide for Webot Contoller Creation
 
-A detailed guide for creating a new Webot Robot Controller can be found [here](Simulation/controllers/README.md).
+A detailed guide for creating a new Webot Robot Controller can be found [here](simulation/controllers/README.md).
 
 # RosBot Library Documentaion
 
 We provide a library which allows users to add a Robot Object to their controllers. The provided Library includes a 
 Python class called ```RosBot``` that can be instantiate in a controller and provides functions to access sensors, 
-motors, and load in objects in the simulated environment. Documentation of this library can be found [here](Simulation/libraries/README.md).
+motors, and load in objects in the simulated environment. Documentation of this library can be found [here](fairis_lib/README.md).
