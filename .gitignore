@@ -167,8 +167,8 @@ simulation/controllers/*
 data/*
 simulation/worlds/mazes/Experiment1/Paths/*
 data/SavedModels/*
-!data/DataCache/temp.png
 data/DataCache/*
+!data/DataCache/temp.png
 gaivi_scripts/*
 fairis_tools/experiment_tools/figure_generation/*
 *.DS_Store
