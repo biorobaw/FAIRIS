@@ -165,6 +165,11 @@ class RosBot(Supervisor):
             break
         return current_x, current_y, self.get_bearing()
 
+    def get_pov_image(self):
+        while self.experiment_supervisor.step(self.timestep) != -1:
+            pov =  self.rgb_camera.getImageArray()
+            break
+        return pov
     # Sets all motors speed to 0
     def stop(self):
         for motor in self.all_motors:
