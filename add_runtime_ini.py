@@ -20,7 +20,7 @@ def main():
         python_venv_path = os.path.join(project_path, "venv", "Scripts", "python.exe")
     else:
         python_venv_path = os.path.join(project_path, "venv", "bin", "python3")
-    controllers_dir = os.path.join(project_path, "WebotsSim", "controllers")
+    controllers_dir = os.path.join(project_path, "Simulation", "controllers")
 
     add_runtime_ini_to_dirs(controllers_dir, python_venv_path)
 
