@@ -18,6 +18,8 @@ setup(
         "tensorflow==2.15.0",
         "tf-agents==0.19.0",
         "gym",
+        "torchvision",
+        "torch"
 
     ],
     author="Chance J Hamilton",
