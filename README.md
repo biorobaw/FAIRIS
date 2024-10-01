@@ -222,7 +222,7 @@ For detailed instructions on configuring PyCharm with Webots, refer to this [gui
 
 To ensure FAIRIS is set up correctly:
 
-1. Launch Webots and open the world file located at `FAIRIS/Simulation/worlds/StartingWorld.wbt`.
+1. Launch Webots and open the world file located at `FAIRIS/simulation/worlds/StartingWorld.wbt`.
 2. Verify that the Template controller is running, which should add walls and place the robot in a starting location.
 3. The robot should print sensor readings and move approximately 1.5 meters before stopping.
 4. Use the reset button in the Webots interface to see this process repeat.
@@ -234,7 +234,7 @@ If everything works as expected, you’re ready to start developing your robot c
 ## Additional Documentation
 
 - **Guide for Webots Controller Creation**: Detailed instructions for creating a new Webots Robot Controller can be 
-  found [here](Simulation/controllers/README.md).
+  found [here](simulation/controllers/README.md).
 - **`RosBot` Library Documentation**: The `RosBot` class, which provides functions to access sensors, motors, and 
   load objects in the simulated environment, is documented [here](fairis_lib/README.md).
 
