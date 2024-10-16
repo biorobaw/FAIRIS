@@ -109,3 +109,7 @@ class PlaceCellNetwork:
             total_activation = 1
         for pc in self.pc_list:
             pc.activity = pc.activity/total_activation
+
+class VisiualPlaceCell:
+    def __init__(self):
+        pass

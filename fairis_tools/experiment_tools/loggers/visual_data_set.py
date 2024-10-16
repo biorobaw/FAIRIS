@@ -13,7 +13,7 @@ preprocess = transforms.Compose([
 
 # Define the Datapoint class with automatic image processing
 class Datapoint:
-    def __init__(self, raw_image_data, x, y, theta):
+    def __init__(self, raw_image_data, x, y, theta, landmark_mask = [0,0,0,0,0,0,0,0,0]):
         """
         raw_image_data: The raw image data in list<list<list<int>>> format (e.g., from Webots camera).
         additional_info: Dictionary or other data structure to store additional attributes (e.g., robot pose, time).
@@ -25,6 +25,7 @@ class Datapoint:
         self.x = x
         self.y = y
         self.theta = theta
+        self.landmark_mask = landmark_mask
 
     def process_image(self, raw_image_data):
         """
@@ -44,11 +45,11 @@ class PovDataset:
     def __init__(self):
         self.data = []
 
-    def add_datapoint(self, raw_image_data, x, y, theta):
+    def add_datapoint(self, raw_image_data, x, y, theta, landmark_mask):
         """
         Adds a new datapoint to the dataset.
         """
-        self.data.append(Datapoint(raw_image_data, x, y, theta))
+        self.data.append(Datapoint(raw_image_data, x, y, theta, landmark_mask))
 
     def save_dataset(self, filename):
         """

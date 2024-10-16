@@ -4,6 +4,7 @@ from fairis_lib.simulation_lib.environment import Maze
 from controller import Supervisor
 import math
 
+
 class RelativeDistances:
     def __init__(self, lidar_range_image):
         temp = [lidar_range_image[-60:], lidar_range_image[0:40]]
@@ -89,7 +90,7 @@ class RosBot(Supervisor):
                            self.front_right_motor,
                            self.rear_left_motor,
                            self.rear_right_motor]
-        self.max_motor_velocity = self.rear_left_motor.getMaxVelocity()*(3/4)
+        self.max_motor_velocity = self.rear_left_motor.getMaxVelocity() * (3 / 4)
 
         # Initialize robot's motors
         for motor in self.all_motors:
@@ -165,11 +166,22 @@ class RosBot(Supervisor):
             break
         return current_x, current_y, self.get_bearing()
 
-    def get_pov_image(self):
+    def get_pov_image(self, landmark_dictionary):
         while self.experiment_supervisor.step(self.timestep) != -1:
-            pov =  self.rgb_camera.getImageArray()
+            landmark_mask = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+            pov = self.rgb_camera.getImageArray()
+            landmarks = self.rgb_camera.getRecognitionObjects()
+            for landmark in landmarks:
+                color = landmark.getColors()
+                color = [color[0], color[1], color[2]]
+                key_list = list(landmark_dictionary.keys())
+                val_list = list(landmark_dictionary.values())
+                position = val_list.index(color)
+                mask_index = key_list[position]
+                landmark_mask[mask_index] = 1
             break
-        return pov
+        return pov, landmark_mask
+
     # Sets all motors speed to 0
     def stop(self):
         for motor in self.all_motors:
@@ -280,7 +292,6 @@ class RosBot(Supervisor):
                 self.stop()
                 break
 
-
     # Rotates the robot by the amount degree. Only rotates until robot reaches the calculated end_bearing
     def rotate(self, degree, margin_error=.0001):
         start_bearing = self.get_bearing()
@@ -338,7 +349,7 @@ class RosBot(Supervisor):
 
         self.move_forward_no_PID(motion_vector[1])
 
-    def perform_random_action(self, bias = True):
+    def perform_random_action(self, bias=True):
 
         available_actions = [int(i) for i in self.get_possible_actions()]
         # Add motion Bias and normalize
@@ -388,12 +399,11 @@ class RosBot(Supervisor):
         action_theta = math.radians(action[0])
         new_x = curr_x + self.action_length * math.cos(action_theta)
         new_y = curr_y + self.action_length * math.sin(action_theta)
-        self.teleport_robot(x=new_x,y=new_y,theta=action_theta)
+        self.teleport_robot(x=new_x, y=new_y, theta=action_theta)
         return self.get_robot_pose()
 
-
     def get_possible_actions(self):
-        min_action_distance = self.action_length +0.2
+        min_action_distance = self.action_length + 0.2
         while self.experiment_supervisor.step(self.timestep) != -1:
             relative_distances = RelativeDistances(lidar_range_image=self.lidar.getRangeImage())
             available_actions = [0] * 8
@@ -412,7 +422,7 @@ class RosBot(Supervisor):
 
     def get_possible_training_action_mask(self):
         available_actions = np.array(self.get_possible_actions())
-        return np.array(np.multiply(available_actions,1),dtype=np.float32)
+        return np.array(np.multiply(available_actions, 1), dtype=np.float32)
 
     def check_if_action_is_possible(self, action_index=-1):
         min_action_distance = .5
@@ -428,7 +438,6 @@ class RosBot(Supervisor):
                 return True
             else:
                 return False
-
 
     # Supervisor Functions: allows robot to control the simulation
 
@@ -472,7 +481,7 @@ class RosBot(Supervisor):
         self.sensor_calibration()
 
     def check_if_robot_safe(self):
-        x,y,z,theta = self.robot_rotation_field.getSFRotation()
+        x, y, z, theta = self.robot_rotation_field.getSFRotation()
         # Normalize the rotation axis vector
         rotation_axis = np.array([x, y, z])
         rotation_axis /= np.linalg.norm(rotation_axis)
@@ -498,15 +507,14 @@ class RosBot(Supervisor):
 
         in_bounds = False
         x, y, z = self.robot_translation_field.getSFVec3f()
-        if -3 < x < 3 and -3 <y< 3 and -.5 < z < .5:
+        if -3 < x < 3 and -3 < y < 3 and -.5 < z < .5:
             in_bounds = True
-
 
         return is_perpendicular[-1], in_bounds
 
     def correct_placement(self):
-        x,y,z = self.robot_translation_field.getSFVec3f()
-        self.teleport_robot(x=x,y=y,z=.01)
+        x, y, z = self.robot_translation_field.getSFVec3f()
+        self.teleport_robot(x=x, y=y, z=.01)
 
     def move_to_training_start(self):
         starting_position = self.maze.experiment_starting_location[0]
@@ -548,7 +556,7 @@ class RosBot(Supervisor):
         distance_to_goal = math.sqrt((current_x - goal_x) ** 2 + (current_y - goal_y) ** 2)
         return distance_to_goal
 
-    def show_loaded_pc_network(self,pc_network):
+    def show_loaded_pc_network(self, pc_network):
         for pc in pc_network.pc_list:
             self.update_pc_display(pc)
 
