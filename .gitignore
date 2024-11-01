@@ -126,6 +126,7 @@ celerybeat.pid
 .venv
 env/
 venv/
+fairis_venv/
 ENV/
 env.bak/
 venv.bak/
@@ -162,8 +163,7 @@ cython_debug/
 #.idea/
 
 # Dev code
-!simulation/controllers/Example
-simulation/controllers/*
+*.ini
 data/*
 simulation/worlds/mazes/Experiment1/Paths/*
 data/SavedModels/*
