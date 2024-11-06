@@ -65,7 +65,7 @@ class PlaceCellNetwork:
         self.pc_network = KDTree(self.pc_coordinates)
 
     def get_num_active_pc(self, robot_x, robot_y, search_radius=.5):
-        if self.pc_network != None:
+        if self.pc_network is not None:
             return self.pc_network.query_radius([(robot_x,robot_y)], r=search_radius,count_only=True)[0]
         else:
             return 0
@@ -111,5 +111,60 @@ class PlaceCellNetwork:
             pc.activity = pc.activity/total_activation
 
 class VisiualPlaceCell:
+    def __init__(self, pc_id, center_point, sigma):
+        self.id = pc_id
+        self.center_point = center_point
+        self.sigma = sigma
+        self.activity = 0.0
+
+    def calculate_activation(self,robot_point):
+        distance = np.linalg.norm(self.center_point - robot_point)
+        self.activity = np.exp(-(distance**2) / (2*self.sigma**2))
+
+class VisualPlaceCellNetwork:
     def __init__(self):
-        pass
+        self.pc_network = None
+        self.pc_list = []
+        self.pc_coordinates = []
+
+    def add_pc_to_network(self, robot_point, radius=.1):
+        pc_id = len(self.pc_list)
+        self.pc_list.append(VisiualPlaceCell(pc_id, robot_point, radius))
+        self.pc_coordinates.append(robot_point)
+        self.pc_network = KDTree(self.pc_coordinates)
+
+    def get_num_active_pc(self, robot_point, search_radius=.5):
+        if self.pc_network is not None:
+            return self.pc_network.query_radius([robot_point], r=search_radius, count_only=True)[0]
+        else:
+            return 0
+
+    def calculate_single_pc_activation(self, pc, robot_point):
+        pc.calculate_activation(robot_point)
+
+    def activate_pc_network(self, robot_point):
+        # Standard approach
+        for pc in self.pc_list:
+            pc.calculate_activation(robot_point)
+        self.normilize_all_pc()
+    def get_total_pc_activation(self):
+        total_activation = 0
+        for pc in self.pc_list:
+            total_activation += pc.activity
+        return total_activation
+
+    def get_all_pc_activations_normalized(self, robot_point):
+        self.activate_pc_network(robot_point)
+        self.normilize_all_pc()
+        return np.array([pc.activity for pc in self.pc_list], dtype=np.float32)
+
+    def print_pc_activations(self):
+        for pc in self.pc_list:
+            print(pc.id, pc.activity)
+
+    def normilize_all_pc(self):
+        total_activation = self.get_total_pc_activation()
+        if total_activation == 0:
+            total_activation = 1
+        for pc in self.pc_list:
+            pc.activity = pc.activity / total_activation

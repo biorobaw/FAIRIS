@@ -19,7 +19,7 @@ class Datapoint:
         additional_info: Dictionary or other data structure to store additional attributes (e.g., robot pose, time).
         """
         # Process the image and convert it to a tensor
-        self.image_tensor = self.process_image(raw_image_data)
+        self.image_tensor = raw_image_data
 
         # Store additional attributes
         self.x = x

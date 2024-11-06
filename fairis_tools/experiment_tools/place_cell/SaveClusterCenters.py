@@ -162,19 +162,19 @@ def extract_features_with_landmarks_and_orientation(dataset):
 features, xy_list = extract_features_with_landmarks_and_orientation(data)
 
 
-# Function to perform KMeans clustering and save the model and cluster centers
-def cluster_with_kmeans(features_list, n_clusters, model_save_path, centers_save_path):
+def cluster_with_kmeans_and_save_centers(features_list, n_clusters, model_save_path, centers_save_path):
     """
-    Perform KMeans clustering, save the model, and save the cluster centers as NumPy arrays.
+    Perform KMeans clustering, approximate the cluster centers, and save them using pickle.
 
     Args:
     - features_list (list of numpy arrays): The feature vectors extracted from the images.
     - n_clusters (int): The number of clusters to form.
-    - model_save_path (str): Path to save the trained KMeans model.
-    - centers_save_path (str): Path to save the cluster centers as NumPy arrays.
+    - model_save_path (str): Path to save the trained KMeans model using pickle.
+    - centers_save_path (str): Path to save the cluster centers as a Python list using pickle.
 
     Returns:
     - cluster_labels (list of int): The cluster label for each datapoint.
+    - cluster_centers (numpy array): The centers of the final clusters.
     """
     features_array = np.array(features_list)
 
@@ -186,16 +186,16 @@ def cluster_with_kmeans(features_list, n_clusters, model_save_path, centers_save
     with open(model_save_path, 'wb') as f:
         pickle.dump(kmeans, f)
 
-    # Save cluster centers as a list of NumPy arrays
+    # Save cluster centers as a Python list using pickle
     cluster_centers = kmeans.cluster_centers_
     with open(centers_save_path, 'wb') as f:
-        pickle.dump(cluster_centers, f)
+        pickle.dump(cluster_centers.tolist(), f)  # Convert to a list for saving
 
     return cluster_labels
 
 model_save_path = "data/GeneratedPCNetworks/VisualPlaceCellData/kmeans_model"
 centers_save_path = "data/GeneratedPCNetworks/VisualPlaceCellData/kmeans_centers"
-cluster_labels = cluster_with_kmeans(features, n_clusters,model_save_path,centers_save_path)
+cluster_labels = cluster_with_kmeans_and_save_centers(features, n_clusters,model_save_path,centers_save_path)
 
 # Now plot the clusters
 plot_clusters(xy_list, cluster_labels, "data/figures/Clustering/knn.png")
@@ -203,18 +203,20 @@ plot_clusters(xy_list, cluster_labels, "data/figures/Clustering/knn.png")
 plot_clusters_by_subplots(xy_list, cluster_labels, "data/figures/Clustering/knn_clusters.png", n_clusters=n_clusters)
 
 # Function to perform Birch clustering and save the model and cluster centers
-def cluster_with_birch(features_list, n_clusters, model_save_path, centers_save_path):
+def cluster_with_birch_and_save_centers(features_list, n_clusters, model_save_path, centers_save_path):
     """
-    Perform Birch clustering, save the model, and save the cluster centers as NumPy arrays.
+    Perform Birch clustering, approximate the cluster centers by averaging the points in each cluster,
+    and save the centers using pickle.
 
     Args:
     - features_list (list of numpy arrays): The feature vectors extracted from the images.
     - n_clusters (int): The number of clusters to form.
-    - model_save_path (str): Path to save the trained Birch model.
-    - centers_save_path (str): Path to save the cluster centers as NumPy arrays.
+    - model_save_path (str): Path to save the trained Birch model using pickle.
+    - centers_save_path (str): Path to save the cluster centers as a Python list using pickle.
 
     Returns:
     - cluster_labels (list of int): The cluster label for each datapoint.
+    - cluster_centers (numpy array): The approximate centers of the final clusters.
     """
     features_array = np.array(features_list)
 
@@ -226,14 +228,33 @@ def cluster_with_birch(features_list, n_clusters, model_save_path, centers_save_
     with open(model_save_path, 'wb') as f:
         pickle.dump(birch, f)
 
-    # Save cluster centers (subcluster centers) as a list of NumPy arrays
-    cluster_centers = birch.subcluster_centers_
+    # Initialize a list to store the final cluster centers
+    cluster_centers = []
+
+    # For each final cluster, calculate the center by averaging the feature vectors in that cluster
+    for cluster_id in range(n_clusters):
+        # Get the indices of the points assigned to this cluster
+        cluster_indices = np.where(cluster_labels == cluster_id)[0]
+
+        # Get the feature vectors for the points in this cluster
+        cluster_points = features_array[cluster_indices]
+
+        # Compute the center by averaging the points in this cluster
+        if len(cluster_points) > 0:
+            cluster_center = np.mean(cluster_points, axis=0)
+        else:
+            # In case a cluster has no points (unlikely), return a zero vector
+            cluster_center = np.zeros(features_array.shape[1])
+
+        cluster_centers.append(cluster_center)
+
+    # Save the cluster centers as a Python list using pickle
     with open(centers_save_path, 'wb') as f:
-        pickle.dump(cluster_centers, f)
+        pickle.dump(np.array(cluster_centers).tolist(), f)
 
     return cluster_labels
 
 model_save_path = "data/GeneratedPCNetworks/VisualPlaceCellData/birch_model"
 centers_save_path = "data/GeneratedPCNetworks/VisualPlaceCellData/birch_centers"
 
-cluster_labels = cluster_with_birch(features, n_clusters, model_save_path, centers_save_path)
+cluster_labels = cluster_with_birch_and_save_centers(features, n_clusters, model_save_path, centers_save_path)
