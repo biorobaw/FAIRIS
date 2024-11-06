@@ -3,7 +3,11 @@ from setuptools import setup, find_packages
 setup(
     name="fairis",
     version="1.0.0",
-    packages=find_packages(include=["fairis_tools", "fairis_tools.*", "fairis_lib", "fairis_lib.*","reinforcement_lib","reinforcement_lib.*"]),
+    packages=find_packages(include=[
+        "fairis_tools", "fairis_tools.*",
+        "fairis_lib", "fairis_lib.*",
+        "reinforcement_lib", "reinforcement_lib.*"
+    ]),
     install_requires=[
         "numpy",
         "opencv-python",
@@ -13,14 +17,14 @@ setup(
         "astar",
         "pandas",
         "jupyter",
+        "ipykernel",  # Ensure compatibility with Jupyter
         "shapely",
         "pygame==2.1.3",
         "tensorflow==2.15.0",
-        "tf-agents==0.19.0",
+        "tf-agents==0.19.0",  # Use version compatible with Python 3.11 and newer typing-extensions
         "gym",
         "torchvision",
-        "torch"
-
+        "torch",
     ],
     author="Chance J Hamilton",
     description="FAIRIS: A framework for cognitive mapping and navigation using Webots simulator.",
