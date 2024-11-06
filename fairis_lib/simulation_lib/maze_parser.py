@@ -63,13 +63,27 @@ def parse_landmark(xml_landmark):
     return pd.DataFrame(data=data, columns=['x', 'y', 'height', 'red', 'green', 'blue'])
 
 
-def parse_all_landmarks(xml_root):
-    return pd.concat(
-        [pd.DataFrame(columns=['x', 'y', 'height', 'red', 'green', 'blue'])] + [parse_landmark(xml_landmark) for
-                                                                                xml_landmark in
-                                                                                xml_root.findall(
-                                                                                    'landmark')]).reset_index(drop=True)
+# def parse_all_landmarks(xml_root):
+#     return pd.concat(
+#         [pd.DataFrame(columns=['x', 'y', 'height', 'red', 'green', 'blue'])] + [parse_landmark(xml_landmark) for
+#                                                                                 xml_landmark in
+#                                                                                 xml_root.findall(
+#                                                                                     'landmark')]).reset_index(drop=True)
 
+
+def parse_all_landmarks(xml_root):
+    # Create a list of DataFrames for each landmark
+    landmark_dataframes = [parse_landmark(xml_landmark) for xml_landmark in xml_root.findall('landmark')]
+
+    # Filter out any empty or None DataFrames from parse_landmark results
+    landmark_dataframes = [df for df in landmark_dataframes if not df.empty]
+
+    # If no landmarks are found, return an empty DataFrame with the specified columns
+    if not landmark_dataframes:
+        return pd.DataFrame(columns=['x', 'y', 'height', 'red', 'green', 'blue'])
+
+    # Concatenate the landmark DataFrames and reset the index
+    return pd.concat(landmark_dataframes, ignore_index=True)
 
 def parse_position(xml_position):
     return pd.DataFrame(data=[[float(xml_position.get(p)) for p in ['x', 'y', 'theta']]], columns=['x', 'y', 'theta'])
