@@ -1,7 +1,11 @@
 import operator
 from reinforcement_lib.reinforcement_utils.model_functions import *
+from fairis_tools.experiment_tools.image_processing.image_feature_lib import *
 from fairis_lib.simulation_lib.environment import Maze
 from controller import Supervisor
+import torch
+from matplotlib import patches
+
 import math
 
 
@@ -43,7 +47,7 @@ def calculate_motion_vector(x1, y1, x2, y2):
 class RosBot(Supervisor):
 
     # Initiilize an instance of Webots Harrison's RosBot
-    def __init__(self, action_length=0.5):
+    def __init__(self, action_length=0.5,pc_type="GPS"):
 
         # Inherent from Webots Robot Class: https://cyberbotics.com/doc/reference/robot
         self.experiment_supervisor = Supervisor()
@@ -112,8 +116,8 @@ class RosBot(Supervisor):
             encoder.enable(self.timestep)
 
         # Webots Astra Camera: https://cyberbotics.com/doc/guide/range-finder-sensors#orbbec-astra
-        self.depth_camera = self.experiment_supervisor.getDevice('camera depth')
-        self.depth_camera.enable(self.timestep)
+        # self.depth_camera = self.experiment_supervisor.getDevice('camera depth')
+        # self.depth_camera.enable(self.timestep)
 
         self.rgb_camera = self.experiment_supervisor.getDevice('camera rgb')
         self.rgb_camera.enable(self.timestep)
@@ -165,6 +169,13 @@ class RosBot(Supervisor):
             current_x, current_y, current_z = self.robot_translation_field.getSFVec3f()
             break
         return current_x, current_y, self.get_bearing()
+
+    def get_robot_pov_features(self, landmark_dictionary):
+        pov, landmark_mask = self.get_pov_image(landmark_dictionary)
+        x,y,theta = self.get_robot_pose()
+        features = extract_combined_features(pov,landmark_mask,math.radians(theta))
+        # pov = extract_combined_features(pov)
+        return features
 
     def get_pov_image(self, landmark_dictionary):
         while self.experiment_supervisor.step(self.timestep) != -1:
