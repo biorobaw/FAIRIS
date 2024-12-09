@@ -1,15 +1,14 @@
 import pickle
-import torch
-import torchvision.models as models
 import os
 import numpy as np
-from sklearn.cluster import KMeans, DBSCAN, AgglomerativeClustering, SpectralClustering, Birch
+from sklearn.cluster import KMeans, Birch
+from scipy.spatial.distance import cdist
 import matplotlib.pyplot as plt
 os.chdir("../../..")
 print(os.getcwd())
 
 with open("data/VisualPlaceCellData/LM8_1000",'rb') as file:
-    data = pickle.load(file)
+    visual_place_cell_data = pickle.load(file)
 
 
 n_clusters = 18  # You can change this based on how many clusters you expect
@@ -92,85 +91,29 @@ def plot_clusters_by_subplots(xy_list, cluster_labels, name, n_clusters=8):
     fig.savefig(name)
     plt.close()
 
+def format_data_for_clustering(data):
+    multimodal_feature_vectors = []
+    cnn_feature_vectors = []
+    xy_list = []
+    theta_list = []
+    for observation in data.observations:
+        multimodal_feature_vectors.append(observation.multimodal_feature_vector)
+        cnn_feature_vectors.append(observation.cnn_feature_vector)
+        xy_list.append((observation.x, observation.y))
+        theta_list.append(observation.theta)
 
-# Load pre-trained ResNet50 model and remove classification layers for feature extraction
-resnet50 = models.resnet50(pretrained=True)
-resnet50 = torch.nn.Sequential(*list(resnet50.children())[:-2])  # Remove the fully connected layers
-resnet50.eval()  # Set model to evaluation mode
+    return multimodal_feature_vectors, cnn_feature_vectors, xy_list, theta_list
 
-# Function to process a single image and extract features, with additional landmark and orientation data
-def process_datapoint(image_tensor, landmarks_binary_list, orientation_radians):
+multimodal_feature_vectors,cnn_feature_vectors,xy_list,theta_list = format_data_for_clustering(visual_place_cell_data)
+def cluster_with_kmeans_and_save_centers(features_list, n_clusters, centers_save_path):
     """
-    Process a single image tensor through ResNet50, and augment the features with
-    the binary list of detected landmarks and the robot's orientation.
-
-    Args:
-    - image_tensor (torch.Tensor): The image tensor from Webots camera.
-    - landmarks_binary_list (list of int): Binary list indicating which landmarks are detected in the image.
-    - orientation_radians (float): The robot's orientation in radians from the IMU.
-
-    Returns:
-    - full_features (numpy array): The combined feature vector from ResNet50, landmarks, and orientation.
-    """
-    with torch.no_grad():
-        # Extract ResNet50 features
-        features = resnet50(image_tensor.unsqueeze(0))  # Add batch dimension (unsqueeze adds a batch dimension)
-        flattened_features = features.view(features.size(0), -1)  # Flatten to [1, 2048 * 7 * 7]
-        flattened_features = flattened_features.cpu().numpy().squeeze()  # Convert to NumPy array and remove extra dimensions
-
-    # Convert the binary landmark list and orientation to a NumPy array
-    landmarks_and_orientation = np.array(landmarks_binary_list + [orientation_radians], dtype=np.float32)
-
-    # Concatenate the ResNet features with the landmarks and orientation
-    full_features = np.concatenate((flattened_features, landmarks_and_orientation))
-
-    return full_features
-
-
-# Function to extract features from each datapoint, including landmarks and orientation
-def extract_features_with_landmarks_and_orientation(dataset):
-    """
-    Extract features from the dataset one by one, augmenting with landmarks and orientation.
-
-    Args:
-    - dataset (PovDataset): The dataset containing Datapoint objects.
-
-    Returns:
-    - features_list (list of numpy arrays): A list of feature vectors for each image in the dataset.
-    - xy_labels (list of tuples): A list of (x, y) coordinates corresponding to each feature vector.
-    """
-    features_list = []
-    xy_labels = []
-    count = 1
-    # Process each datapoint individually
-    for datapoint in dataset.data:
-        print("Processing data point: ", count)
-        count += 1
-        # Extract landmarks and orientation (simulated here as placeholders, replace with actual values)
-        landmarks_binary_list = datapoint.landmark_mask  # Assume this is part of your dataset
-        orientation_radians = datapoint.theta  # Assume this is part of your dataset
-
-        # Extract features from the image tensor, and include the landmarks and orientation
-        features = process_datapoint(datapoint.image_tensor, landmarks_binary_list, orientation_radians)
-        features_list.append(features)
-
-        # Keep track of the (x, y) coordinates
-        xy_labels.append((datapoint.x, datapoint.y))
-
-    return features_list, xy_labels
-
-features, xy_list = extract_features_with_landmarks_and_orientation(data)
-
-
-def cluster_with_kmeans_and_save_centers(features_list, n_clusters, model_save_path, centers_save_path):
-    """
-    Perform KMeans clustering, approximate the cluster centers, and save them using pickle.
+    Perform KMeans clustering, calculate the maximum distance for each cluster,
+    and save the cluster centers and max distances as a list of lists using pickle.
 
     Args:
     - features_list (list of numpy arrays): The feature vectors extracted from the images.
     - n_clusters (int): The number of clusters to form.
-    - model_save_path (str): Path to save the trained KMeans model using pickle.
-    - centers_save_path (str): Path to save the cluster centers as a Python list using pickle.
+    - centers_save_path (str): Path to save the cluster centers and max distances using pickle.
 
     Returns:
     - cluster_labels (list of int): The cluster label for each datapoint.
@@ -182,37 +125,58 @@ def cluster_with_kmeans_and_save_centers(features_list, n_clusters, model_save_p
     kmeans = KMeans(n_clusters=n_clusters, random_state=42)
     cluster_labels = kmeans.fit_predict(features_array)
 
-    # Save the KMeans model
-    with open(model_save_path, 'wb') as f:
-        pickle.dump(kmeans, f)
-
-    # Save cluster centers as a Python list using pickle
+    # Get cluster centers and labels for each data point
     cluster_centers = kmeans.cluster_centers_
+    labels = kmeans.labels_
+
+    # List to store [center, max_distance] for each cluster
+    cluster_data = []
+
+    # Calculate max distance for each cluster
+    for cluster_index in range(n_clusters):
+        # Get data points belonging to this cluster
+        cluster_points = features_array[labels == cluster_index]
+
+        # Calculate distances from each point to the cluster center
+        distances = cdist(cluster_points, [cluster_centers[cluster_index]], metric='euclidean').flatten()
+
+        # Find the maximum distance for this cluster
+        max_distance = distances.max()
+
+        # Append the center and max distance as a pair to cluster_data
+        cluster_data.append([cluster_centers[cluster_index].tolist(), max_distance])
+
+    # Save cluster_data (centers and max distances) using pickle
     with open(centers_save_path, 'wb') as f:
-        pickle.dump(cluster_centers.tolist(), f)  # Convert to a list for saving
+        pickle.dump(cluster_data, f)
 
     return cluster_labels
 
-model_save_path = "data/GeneratedPCNetworks/VisualPlaceCellData/kmeans_model"
-centers_save_path = "data/GeneratedPCNetworks/VisualPlaceCellData/kmeans_centers"
-cluster_labels = cluster_with_kmeans_and_save_centers(features, n_clusters,model_save_path,centers_save_path)
+centers_save_path = "data/VisualPlaceCellData/VisualPlaceCellClusters/multimodal_kmeans_centers"
+cluster_labels = cluster_with_kmeans_and_save_centers(multimodal_feature_vectors, n_clusters, centers_save_path)
 
 # Now plot the clusters
-plot_clusters(xy_list, cluster_labels, "data/figures/Clustering/knn.png")
+plot_clusters(xy_list, cluster_labels, "data/figures/Clustering/multi_model_knn.png")
+plot_clusters_by_subplots(xy_list, cluster_labels, "data/figures/Clustering/multimodel_knn_clusters.png", n_clusters=n_clusters)
 
-plot_clusters_by_subplots(xy_list, cluster_labels, "data/figures/Clustering/knn_clusters.png", n_clusters=n_clusters)
+centers_save_path = "data/VisualPlaceCellData/VisualPlaceCellClusters/cnn_kmeans_centers"
+cluster_labels = cluster_with_kmeans_and_save_centers(cnn_feature_vectors, n_clusters, centers_save_path)
+
+# Now plot the clusters
+plot_clusters(xy_list, cluster_labels, "data/figures/Clustering/cnn_knn.png")
+plot_clusters_by_subplots(xy_list, cluster_labels, "data/figures/Clustering/cnn_knn_clusters.png", n_clusters=n_clusters)
 
 # Function to perform Birch clustering and save the model and cluster centers
 def cluster_with_birch_and_save_centers(features_list, n_clusters, model_save_path, centers_save_path):
     """
     Perform Birch clustering, approximate the cluster centers by averaging the points in each cluster,
-    and save the centers using pickle.
+    calculate the maximum distance of points to their cluster center, and save the centers with distances.
 
     Args:
     - features_list (list of numpy arrays): The feature vectors extracted from the images.
     - n_clusters (int): The number of clusters to form.
     - model_save_path (str): Path to save the trained Birch model using pickle.
-    - centers_save_path (str): Path to save the cluster centers as a Python list using pickle.
+    - centers_save_path (str): Path to save the cluster centers and max distances as a Python list using pickle.
 
     Returns:
     - cluster_labels (list of int): The cluster label for each datapoint.
@@ -228,33 +192,46 @@ def cluster_with_birch_and_save_centers(features_list, n_clusters, model_save_pa
     with open(model_save_path, 'wb') as f:
         pickle.dump(birch, f)
 
-    # Initialize a list to store the final cluster centers
-    cluster_centers = []
+    # List to store [center, max_distance] for each cluster
+    cluster_data = []
 
-    # For each final cluster, calculate the center by averaging the feature vectors in that cluster
+    # For each final cluster, calculate the center and max distance
     for cluster_id in range(n_clusters):
-        # Get the indices of the points assigned to this cluster
-        cluster_indices = np.where(cluster_labels == cluster_id)[0]
-
         # Get the feature vectors for the points in this cluster
-        cluster_points = features_array[cluster_indices]
+        cluster_points = features_array[cluster_labels == cluster_id]
 
         # Compute the center by averaging the points in this cluster
         if len(cluster_points) > 0:
             cluster_center = np.mean(cluster_points, axis=0)
         else:
-            # In case a cluster has no points (unlikely), return a zero vector
+            # In case a cluster has no points (unlikely), set a zero vector
             cluster_center = np.zeros(features_array.shape[1])
 
-        cluster_centers.append(cluster_center)
+        # Calculate distances from each point to the cluster center
+        distances = cdist(cluster_points, [cluster_center], metric='euclidean').flatten()
 
-    # Save the cluster centers as a Python list using pickle
+        # Find the maximum distance
+        max_distance = distances.max() if len(distances) > 0 else 0
+
+        # Append the center and max distance as a pair to cluster_data
+        cluster_data.append([cluster_center.tolist(), max_distance])
+
+    # Save cluster_data (centers and max distances) using pickle
     with open(centers_save_path, 'wb') as f:
-        pickle.dump(np.array(cluster_centers).tolist(), f)
+        pickle.dump(cluster_data, f)
 
     return cluster_labels
 
-model_save_path = "data/GeneratedPCNetworks/VisualPlaceCellData/birch_model"
-centers_save_path = "data/GeneratedPCNetworks/VisualPlaceCellData/birch_centers"
+centers_save_path = "data/VisualPlaceCellData/VisualPlaceCellClusters/multimodal_birch_centers"
+cluster_labels = cluster_with_kmeans_and_save_centers(multimodal_feature_vectors, n_clusters, centers_save_path)
 
-cluster_labels = cluster_with_birch_and_save_centers(features, n_clusters, model_save_path, centers_save_path)
+# Now plot the clusters
+plot_clusters(xy_list, cluster_labels, "data/figures/Clustering/multi_model_birch.png")
+plot_clusters_by_subplots(xy_list, cluster_labels, "data/figures/Clustering/multimodel_birch_clusters.png", n_clusters=n_clusters)
+
+centers_save_path = "data/VisualPlaceCellData/VisualPlaceCellClusters/cnn_birch_centers"
+cluster_labels = cluster_with_kmeans_and_save_centers(cnn_feature_vectors, n_clusters, centers_save_path)
+
+# Now plot the clusters
+plot_clusters(xy_list, cluster_labels, "data/figures/Clustering/cnn_birch.png")
+plot_clusters_by_subplots(xy_list, cluster_labels, "data/figures/Clustering/cnn_birch_clusters.png", n_clusters=n_clusters)

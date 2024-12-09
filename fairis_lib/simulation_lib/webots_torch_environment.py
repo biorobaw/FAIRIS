@@ -7,26 +7,45 @@ from fairis_lib.robot_lib.rosbot import RosBot
 import gym
 from gym.spaces import Discrete
 
-maze_file_dir = 'simulation/worlds/mazes/Experiment1/'
-
+landmark_dictionary = {
+    0: [1.0, 0.0, 0.0],
+    1: [0.0, 1.0, 0.0],
+    2: [0.0, 0.0, 1.0],
+    3: [1.0, 1.0, 0.0],
+    4: [1.0, 0.0, 1.0],
+    5: [0.0, 1.0, 1.0],
+    6: [1.0, 0.5, 0.0],
+    7: [0.5, 0.0, 0.5],
+    8: [0.5, 0.5, 0.0],
+}
 
 class WebotsEnv(py_environment.PyEnvironment):
-    def __init__(self, maze_file, pc_network_name, max_steps_per_episode=200, action_length = 0.5):
+    def __init__(self, maze_file, pc_network_name, pc_type = "GPS",max_steps_per_episode=200, action_length = 0.5):
         self.maze_file = maze_file
         self.pc_network_name = pc_network_name
         self.max_steps_per_episode = max_steps_per_episode
         self.current_step = 0
         self.episode_counter = 0
         self.starting_permutaions = np.random.permutation(4)
-        self.robot = RosBot(action_length=action_length)
+        self.robot = RosBot(action_length=action_length,pc_type=pc_type)
         self.set_mode()
         self.action_space = Discrete(n=8)
+        self.pc_type = pc_type
 
-        self.robot.load_environment(maze_file_dir + maze_file + '.xml')
-        with open("data/GeneratedPCNetworks/" + pc_network_name, 'rb') as pc_file:
-            self.experiment_pc_network = pickle.load(pc_file)
+        if self.pc_type == 'GPS':
+            self.maze_file_dir = 'simulation/worlds/mazes/Experiment1/'
+            self.pc_dir = "data/GeneratedPCNetworks/GPSPlaceCells/"
+            with open(self.pc_dir + pc_network_name, 'rb') as pc_file:
+                self.experiment_pc_network = pickle.load(pc_file)
+
+        else:
+            self.maze_file_dir = 'simulation/worlds/mazes/VisualPlaceCells/'
+            self.pc_dir = "data/GeneratedPCNetworks/VisualPlaceCells/"
+            with open(self.pc_dir + pc_network_name, 'rb') as pc_file:
+                self.experiment_pc_network = pickle.load(pc_file)
 
         self.num_place_cells = len(self.experiment_pc_network.pc_list)
+        self.robot.load_environment(self.maze_file_dir + maze_file + '.xml')
 
         # TF-Agents specs
         self._action_spec = array_spec.BoundedArraySpec(shape=(),
@@ -62,7 +81,11 @@ class WebotsEnv(py_environment.PyEnvironment):
         self.episode_counter += 1
         self.robot.experiment_supervisor.simulationResetPhysics()
 
-        PC_Activations = self.experiment_pc_network.get_all_pc_activations_normalized(robot_x, robot_y)
+        if self.pc_type == "GPS":
+            PC_Activations = self.experiment_pc_network.get_all_pc_activations_normalized(robot_x, robot_y)
+        else:
+            robot_point = self.robot.get_robot_pov_processed(landmark_dictionary)
+            PC_Activations = self.experiment_pc_network.get_all_pc_activations_normalized(robot_point)
         avalible_actions = self.robot.get_possible_actions()
         # initial_observation = np.concatenate([PC_Activations, avalible_actions]).astype(np.float32)
         initial_observation = PC_Activations
@@ -77,8 +100,13 @@ class WebotsEnv(py_environment.PyEnvironment):
             robot_x, robot_y, robot_theta = self.robot.get_robot_pose()
             reward += -2
         if self.noise_type is None:
-            PC_Activations = self.experiment_pc_network.get_all_pc_activations_normalized(robot_x, robot_y)
+            if self.pc_type == "GPS":
+                PC_Activations = self.experiment_pc_network.get_all_pc_activations_normalized(robot_x, robot_y)
+            else:
+                robot_point = self.robot.get_robot_pov_processed(landmark_dictionary)
+                PC_Activations = self.experiment_pc_network.get_all_pc_activations_normalized(robot_point)
         else:
+            # TODO add noise for visual PC
             noisy_x, noisy_y = apply_noise(robot_x, robot_y, noise_type=self.noise_type, level=self.noise_level)
             PC_Activations = self.experiment_pc_network.get_all_pc_activations_normalized(noisy_x, noisy_y)
 
@@ -115,9 +143,15 @@ class WebotsEnv(py_environment.PyEnvironment):
         self.robot.experiment_supervisor.simulationQuit(status=1)
 
     def reload(self, maze_file, pc_network_name):
-        self.robot.load_environment(maze_file_dir + maze_file + '.xml')
-        with open("data/GeneratedPCNetworks/" + pc_network_name, 'rb') as pc_file:
-            self.experiment_pc_network = pickle.load(pc_file)
+        self.robot.load_environment(self.maze_file_dir + maze_file + '.xml')
+        if self.pc_type == 'GPS':
+            with open(self.pc_dir + pc_network_name, 'rb') as pc_file:
+                self.experiment_pc_network = pickle.load(pc_file)
+
+            self.num_place_cells = len(self.experiment_pc_network.pc_list)
+        else:
+            with open(self.pc_dir + pc_network_name, 'rb') as pc_file:
+                self.experiment_pc_network = pickle.load(pc_file)
 
         self.num_place_cells = len(self.experiment_pc_network.pc_list)
 

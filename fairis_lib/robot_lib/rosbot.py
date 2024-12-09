@@ -5,6 +5,9 @@ from fairis_lib.simulation_lib.environment import Maze
 from controller import Supervisor
 import torch
 from matplotlib import patches
+import torchvision.models as models
+from torchvision.models import ResNet50_Weights
+from torchvision import transforms
 
 import math
 
@@ -47,7 +50,7 @@ def calculate_motion_vector(x1, y1, x2, y2):
 class RosBot(Supervisor):
 
     # Initiilize an instance of Webots Harrison's RosBot
-    def __init__(self, action_length=0.5,pc_type="GPS"):
+    def __init__(self, action_length=0.5,enable_cnn_features=False):
 
         # Inherent from Webots Robot Class: https://cyberbotics.com/doc/reference/robot
         self.experiment_supervisor = Supervisor()
@@ -159,6 +162,20 @@ class RosBot(Supervisor):
 
         self.sensor_calibration()
 
+        # Enable CNN-based feature extraction if required
+        self.enable_cnn_features = enable_cnn_features
+        if self.enable_cnn_features:
+            # Load ResNet50 model and remove classification layers
+            self.cnn_feature_extractor = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
+            self.cnn_feature_extractor = torch.nn.Sequential(*list(self.cnn_feature_extractor.children())[:-2])
+            self.cnn_feature_extractor.eval()
+            self.preprocess = transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+            ])
+        else:
+            self.cnn_feature_extractor = None
+
     # Preforms one timestep to update all sensors should be used when initializing robot and after teleport
     def sensor_calibration(self):
         while self.experiment_supervisor.step(self.timestep) != -1:
@@ -170,12 +187,46 @@ class RosBot(Supervisor):
             break
         return current_x, current_y, self.get_bearing()
 
+    def get_cnn_features(self, pov_image):
+        """
+        Process the robot's POV image using ResNet50 to extract CNN features.
+
+        Args:
+            pov_image (list): The robot's POV image as a 3D list of RGB values.
+
+        Returns:
+            np.ndarray: The extracted CNN features as a flattened numpy array.
+        """
+        # Convert the Webots image (list format) to a numpy array
+        pov_image_np = np.array(pov_image, dtype=np.uint8)
+        # Apply preprocessing transformations
+        pov_image_tensor = self.preprocess(pov_image_np).unsqueeze(0)  # Add batch dimension
+        with torch.no_grad():
+            features = self.cnn_feature_extractor(pov_image_tensor)
+        return features.flatten().numpy()
+
     def get_robot_pov_features(self, landmark_dictionary):
+        """
+        Get combined feature vector including CNN features, multimodal features, and robot pose.
+
+        Args:
+            landmark_dictionary (dict): Dictionary to identify landmarks in the POV image.
+
+        Returns:
+            np.ndarray: Combined feature vector suitable for clustering.
+        """
         pov, landmark_mask = self.get_pov_image(landmark_dictionary)
-        x,y,theta = self.get_robot_pose()
-        features = extract_combined_features(pov,landmark_mask,math.radians(theta))
-        # pov = extract_combined_features(pov)
-        return features
+        x, y, theta = self.get_robot_pose()
+
+        # Extract CNN features if enabled
+        if self.enable_cnn_features:
+            cnn_features = self.get_cnn_features(pov)
+        else:
+            cnn_features = np.array([])  # Empty array if CNN features are not enabled
+
+        multimodal_features = extract_combined_features(pov, landmark_mask, theta)
+
+        return multimodal_features, cnn_features, landmark_mask
 
     def get_pov_image(self, landmark_dictionary):
         while self.experiment_supervisor.step(self.timestep) != -1:
