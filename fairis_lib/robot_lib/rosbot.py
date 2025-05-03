@@ -8,6 +8,7 @@ from matplotlib import patches
 import torchvision.models as models
 from torchvision.models import ResNet50_Weights
 from torchvision import transforms
+import matplotlib.pyplot as plt
 
 import math
 
@@ -56,8 +57,8 @@ class RosBot(Supervisor):
         self.experiment_supervisor = Supervisor()
 
         # Add a display to plot the place cells as they are generated
-        self.pc_display = self.experiment_supervisor.getDevice('Place Cell Display')
-        self.pc_display.setOpacity(1.0)
+#        self.pc_display = self.experiment_supervisor.getDevice('Place Cell Display')
+#        self.pc_display.setOpacity(1.0)
 
         # Sets Supervisor Root Nodes
         self.root_node = self.experiment_supervisor.getRoot()
@@ -97,7 +98,7 @@ class RosBot(Supervisor):
                            self.front_right_motor,
                            self.rear_left_motor,
                            self.rear_right_motor]
-        self.max_motor_velocity = self.rear_left_motor.getMaxVelocity() * (3 / 4)
+        self.max_motor_velocity = self.rear_left_motor.getMaxVelocity() * (2 / 4)
 
         # Initialize robot's motors
         for motor in self.all_motors:
@@ -123,8 +124,8 @@ class RosBot(Supervisor):
         # self.depth_camera.enable(self.timestep)
 
         self.rgb_camera = self.experiment_supervisor.getDevice('camera rgb')
-        self.rgb_camera.enable(self.timestep)
-        self.rgb_camera.recognitionEnable(self.timestep)
+#        self.rgb_camera.enable(self.timestep)
+#        self.rgb_camera.recognitionEnable(self.timestep)
 
         # Webots RpLidarA2: https://www.cyberbotics.com/doc/guide/lidar-sensors#slamtec-rplidar-a2
         self.lidar = self.experiment_supervisor.getDevice('lidar')
@@ -175,6 +176,8 @@ class RosBot(Supervisor):
             ])
         else:
             self.cnn_feature_extractor = None
+
+        self.lengths = []
 
     # Preforms one timestep to update all sensors should be used when initializing robot and after teleport
     def sensor_calibration(self):
@@ -439,8 +442,10 @@ class RosBot(Supervisor):
         if self.check_if_action_is_possible(action_index=action_index):
             self.rotate_to(action[0])
             self.move_forward_with_PID(action[1])
+            return 0
         else:
-            print("cant preform action")
+#            print("cant preform action")
+            return -1
 
     def perform_action_no_PID(self, action_index):
         action = self.action_set.get(action_index)
@@ -505,15 +510,14 @@ class RosBot(Supervisor):
 
     # Takes in a xml maze file and creates the walls, starting locations, and goal locations
     def load_environment(self, maze_file):
-        self.maze = Maze(maze_file, display_width=self.pc_display.getWidth(),
-                         display_height=self.pc_display.getHeight())
+        self.maze = Maze(maze_file)
         self.pc_figure, self.pc_figure_ax = self.maze.get_maze_figure()
         self.pc_figure.savefig('data/DataCache/temp.png')
 
-        while self.experiment_supervisor.step(self.timestep) != -1:
-            ir = self.pc_display.imageLoad('data/DataCache/temp.png')
-            self.pc_display.imagePaste(ir, 0, 0, True)
-            break
+        #while self.experiment_supervisor.step(self.timestep) != -1:
+        #    ir = self.pc_display.imageLoad('data/DataCache/temp.png')
+        #    self.pc_display.imagePaste(ir, 0, 0, True)
+        #    break
 
         self.obstical_nodes = []
         self.boundry_wall_nodes = []
@@ -584,10 +588,11 @@ class RosBot(Supervisor):
 
     # Moves the robot to a random starting position
     def move_to_testing_start(self, index=-1):
-        if index == -1:
-            starting_position = self.maze.get_random_experiment_testing_starting_position()
-        else:
-            starting_position = self.maze.experiment_starting_location[index]
+#        if index == -1:
+        starting_position = self.maze.get_random_experiment_testing_starting_position()
+#        print(starting_position)
+#        else:
+#            starting_position = self.maze.experiment_starting_location[index]
         self.teleport_robot(starting_position.x, starting_position.y, theta=starting_position.theta)
         return self.get_robot_pose()
 
@@ -595,6 +600,7 @@ class RosBot(Supervisor):
     def move_to_random_experiment_start(self):
         starting_position = self.maze.get_random_experiment_starting_position()
         self.teleport_robot(starting_position.x, starting_position.y, theta=starting_position.theta)
+        self.maze.reset_subgoals()
         return self.get_robot_pose()
 
     # Moves the robot to a random starting position
@@ -606,11 +612,27 @@ class RosBot(Supervisor):
         self.teleport_robot(starting_position.x, starting_position.y, theta=starting_position.theta)
         return self.get_robot_pose()
 
+    def check_at_subgoal(self):
+        current_x, current_y, currentcurrent_z = self.robot_translation_field.getSFVec3f()
+        goal_x, goal_y, finished = self.maze.get_subgoal_location()
+        distance_to_goal = math.sqrt((current_x - goal_x) ** 2 + (current_y - goal_y) ** 2)
+        return distance_to_goal < 0.8, finished
+
+    def next_subgoal(self):
+        self.maze.next_subgoal()
+
     def check_at_goal(self):
         current_x, current_y, currentcurrent_z = self.robot_translation_field.getSFVec3f()
         goal_x, goal_y = self.maze.get_goal_location()
         distance_to_goal = math.sqrt((current_x - goal_x) ** 2 + (current_y - goal_y) ** 2)
+#        print(distance_to_goal)
+#        self.lengths.append(distance_to_goal)
         return distance_to_goal < 0.8
+
+    def plot_goal_lengths(self):
+        plt.clf()
+        plt.plot(self.lengths)
+        plt.savefig("/home/b/brendon45/goal_lengths.png")
 
     def get_dist_to_goal(self):
         current_x, current_y, currentcurrent_z = self.robot_translation_field.getSFVec3f()

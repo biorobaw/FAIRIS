@@ -9,7 +9,7 @@ from reinforcement_lib.reinforcement_utils.ppo_memory import PPOMemory
 
 class ActorNetwork(nn.Module):
     def __init__(self, n_actions, input_dims, alpha,
-                 fc1_dims=256, fc2_dims=256, name='actor_torch_ppo', ver_name='', chkpt_dir='data/SavedModels/PPO'):
+                 fc1_dims=128, fc2_dims=256, name='actor_torch_ppo', ver_name='', chkpt_dir='data/SavedModels/PPO'):
         super(ActorNetwork, self).__init__()
         self.name = name + ver_name
         self.checkpoint_file = os.path.join(chkpt_dir, self.name)
@@ -17,6 +17,8 @@ class ActorNetwork(nn.Module):
             nn.Linear(*input_dims, fc1_dims),
             nn.ReLU(),
             nn.Linear(fc1_dims, fc2_dims),
+            nn.ReLU(),
+            nn.Linear(256, 256),
             nn.ReLU(),
             nn.Linear(fc2_dims, n_actions),
             nn.Softmax(dim=-1)
@@ -40,7 +42,7 @@ class ActorNetwork(nn.Module):
 
 
 class CriticNetwork(nn.Module):
-    def __init__(self, input_dims, alpha, fc1_dims=256, fc2_dims=256, name='critic_torch_ppo', ver_name='',
+    def __init__(self, input_dims, alpha, fc1_dims=128, fc2_dims=256, name='critic_torch_ppo', ver_name='',
                  chkpt_dir='data/SavedModels/PPO'):
         super(CriticNetwork, self).__init__()
         self.name = name + ver_name
@@ -49,6 +51,8 @@ class CriticNetwork(nn.Module):
             nn.Linear(*input_dims, fc1_dims),
             nn.ReLU(),
             nn.Linear(fc1_dims, fc2_dims),
+            nn.ReLU(),
+            nn.Linear(256, 256),
             nn.ReLU(),
             nn.Linear(fc2_dims, 1)
         )
@@ -126,6 +130,7 @@ class Agent:
         return action, probs, value
 
     def learn(self, memory=True):
+        losses = []
         for _ in range(self.n_epochs):
             state_arr, action_arr, old_prob_arr, vals_arr, \
                 reward_arr, dones_arr, batches = \
@@ -168,6 +173,7 @@ class Agent:
                 critic_loss = critic_loss.mean()
 
                 total_loss = actor_loss + 0.5 * critic_loss
+                losses.append(total_loss.detach().cpu().numpy().item())
                 self.actor.optimizer.zero_grad()
                 self.critic.optimizer.zero_grad()
                 total_loss.backward()
@@ -175,3 +181,4 @@ class Agent:
                 self.critic.optimizer.step()
 
         self.memory.clear_memory(memory)
+        return np.mean(losses)

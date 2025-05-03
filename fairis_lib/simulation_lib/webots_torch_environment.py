@@ -27,14 +27,16 @@ class WebotsEnv(py_environment.PyEnvironment):
         self.current_step = 0
         self.episode_counter = 0
         self.starting_permutaions = np.random.permutation(4)
-        self.robot = RosBot(action_length=action_length,pc_type=pc_type)
+#        self.robot = RosBot(action_length=action_length,pc_type=pc_type)
+        self.robot = RosBot(action_length=action_length)
         self.set_mode()
         self.action_space = Discrete(n=8)
         self.pc_type = pc_type
 
         if self.pc_type == 'GPS':
             self.maze_file_dir = 'simulation/worlds/mazes/Experiment1/'
-            self.pc_dir = "data/GeneratedPCNetworks/GPSPlaceCells/"
+            #self.pc_dir = "data/GeneratedPCNetworks/GPSPlaceCells/"
+            self.pc_dir = ""
             with open(self.pc_dir + pc_network_name, 'rb') as pc_file:
                 self.experiment_pc_network = pickle.load(pc_file)
 
@@ -45,7 +47,7 @@ class WebotsEnv(py_environment.PyEnvironment):
                 self.experiment_pc_network = pickle.load(pc_file)
 
         self.num_place_cells = len(self.experiment_pc_network.pc_list)
-        self.robot.load_environment(self.maze_file_dir + maze_file + '.xml')
+        self.robot.load_environment(maze_file)
 
         # TF-Agents specs
         self._action_spec = array_spec.BoundedArraySpec(shape=(),
@@ -74,10 +76,10 @@ class WebotsEnv(py_environment.PyEnvironment):
         if self.episode_counter % 4 == 0:
             self.starting_permutaions = np.random.permutation(4)
         starting_index = self.starting_permutaions[self.episode_counter % 4]
-        if self.mode == 'train':
-            robot_x, robot_y, robot_theta = self.robot.move_to_testing_start(index=starting_index)
-        else:
-            robot_x, robot_y, robot_theta = self.robot.move_to_habituation_start(index=starting_index)
+#        if self.mode == 'train':
+        robot_x, robot_y, robot_theta = self.robot.move_to_testing_start()
+#        else:
+#            robot_x, robot_y, robot_theta = self.robot.move_to_habituation_start()
         self.episode_counter += 1
         self.robot.experiment_supervisor.simulationResetPhysics()
 
@@ -94,11 +96,15 @@ class WebotsEnv(py_environment.PyEnvironment):
     def _step(self, action):
         self.current_step += 1
         reward = 0
+#        print("test1")
         if self.robot.check_if_action_is_possible(action):
-            robot_x, robot_y, robot_theta = self.robot.perform_training_action_teleport(action)
+#            robot_x, robot_y, robot_theta = self.robot.perform_training_action_teleport(action)
+            value = self.robot.perform_action_with_PID(int(action))
+            robot_x, robot_y, robot_theta = self.robot.get_robot_pose()
         else:
             robot_x, robot_y, robot_theta = self.robot.get_robot_pose()
-            reward += -2
+            reward += -1
+#        print("test2")
         if self.noise_type is None:
             if self.pc_type == "GPS":
                 PC_Activations = self.experiment_pc_network.get_all_pc_activations_normalized(robot_x, robot_y)
@@ -109,12 +115,14 @@ class WebotsEnv(py_environment.PyEnvironment):
             # TODO add noise for visual PC
             noisy_x, noisy_y = apply_noise(robot_x, robot_y, noise_type=self.noise_type, level=self.noise_level)
             PC_Activations = self.experiment_pc_network.get_all_pc_activations_normalized(noisy_x, noisy_y)
+#        print("test3")
 
 
         available_actions = self.robot.get_possible_actions()
 
         # observation = np.concatenate([PC_Activations, available_actions]).astype(np.float32)
         observation = PC_Activations
+#        print("test4")
 
         if self.robot.check_at_goal():
             reward += 100.0  # Explicitly making sure it's float.
@@ -125,6 +133,7 @@ class WebotsEnv(py_environment.PyEnvironment):
         else:
             reward += -1
             done = False
+#        print("test5")
 
         reward = np.array(reward, dtype=np.float32)
 

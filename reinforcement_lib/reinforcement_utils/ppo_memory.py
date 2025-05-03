@@ -1,7 +1,7 @@
 import numpy as np
 
 class PPOMemory:
-    def __init__(self, batch_size, sequence_length=5):
+    def __init__(self, batch_size, sequence_length=20):
         self.states = []
         self.probs = []
         self.vals = []

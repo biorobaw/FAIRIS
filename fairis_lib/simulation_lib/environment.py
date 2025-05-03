@@ -11,19 +11,22 @@ from fairis_lib.simulation_lib.maze_parser import parse_maze
 
 class RandomStartPositionGenerator:
     def __init__(self, starting_positions):
-        self.starting_positions = deque(starting_positions)
-        self.used_positions = []
+#        print(starting_positions)
+#        self.starting_positions = deque([starting_positions])
+#        self.used_positions = []
+        self.position = starting_positions
 
     def get_random_start_position(self):
-        if not self.starting_positions:
+#        if not self.starting_positions:
             # All starting positions have been used once, reset the list.
-            self.starting_positions.extend(self.used_positions)
-            self.used_positions.clear()
+#            self.starting_positions.extend(self.used_positions)
+#            self.used_positions.clear()
 
-        position = random.choice(self.starting_positions)
-        self.starting_positions.remove(position)
-        self.used_positions.append(position)
-        return position
+#        position = random.choice(self.starting_positions)
+#        self.starting_positions.remove(position)
+#        self.used_positions.append(position)
+#        return position[0]
+        return self.position[0]
 
 
 def make_maze_plot_with_pc(display_width, display_height, maze_file="simulation/worlds/mazes/Experiment1/WM00.xml"):
@@ -59,11 +62,13 @@ class Maze:
         self.experiment_starting_location = []
         self.habituation_start_location = []
         self.goal_locations = []
+        self.subgoals = []
         self.obstacles = []
         self.walls = []
         self.landmarks = []
+        self.current_goal = 0
 
-        walls, goals, experiment_start_positions, habituation_start_positions, landmarks = parse_maze(maze_file)
+        walls, goals, subgoals, experiment_start_positions, habituation_start_positions, landmarks = parse_maze(maze_file)
         for index, row in walls.iterrows():
             if index <= 3:
                 self.boundary_walls.append(BoundaryWall(row['x1'], row['y1'], row['x2'], row['y2'], width=row['width'], id=index))
@@ -79,6 +84,12 @@ class Maze:
 
         for index, row in goals.iterrows():
             self.goal_locations.append(Goal(row['x'], row['y'], row['id']))
+
+        for index, row in subgoals.iterrows():
+            self.subgoals.append(Goal(row['x'], row['y'], row['theta']))
+#            self.subgoals.append(Goal(row['x'], row['y'], row['id']))
+#        print("Subgoals")
+#        print(self.subgoals)
 
         for index, row in landmarks.iterrows():
             self.landmarks.append(Landmark(row['x'], row['y'], color=[row['red'], row['green'], row['blue']], id=index))
@@ -120,10 +131,12 @@ class Maze:
 
     # Returns random starting positions
     def get_random_experiment_testing_starting_position(self):
-        return self.random_testing_starting_position_generator.get_random_start_position()
+        return self.random_experiment_starting_position_generator.get_random_start_position()
+        #return self.random_testing_starting_position_generator.get_random_start_position()
 
     def get_random_habituation_starting_position(self):
-        return self.random_habituation_starting_position_generator.get_random_start_position()
+        return self.random_experiment_starting_position_generator.get_random_start_position()
+        #return self.random_habituation_starting_position_generator.get_random_start_position()
 
     # Creates a matplotlib plot of the maze
     def get_maze_figure(self):
@@ -131,6 +144,33 @@ class Maze:
 
     def get_goal_location(self):
         return self.goal_locations[0].x, self.goal_locations[0].y
+
+    def get_subgoal_location(self):
+        last_goal = False
+        if self.current_goal == (len(self.subgoals) - 1):
+            last_goal = True
+        return self.subgoals[self.current_goal].x, self.subgoals[self.current_goal].y, last_goal
+
+    def reset_subgoals(self):
+        self.current_goal = 0
+
+    def next_subgoal(self):
+        self.current_goal += 1
+
+    def get_plot_data(self):
+        starting = [self.experiment_starting_location[0].x, self.experiment_starting_location[0].y]
+        goal = [self.goal_locations[0].x, self.goal_locations[0].y]
+        subgoals = []
+        for sub in self.subgoals:
+            subgoals.append([sub.x, sub.y])
+
+        walls = []
+        for wall in self.boundary_walls:
+            walls.append([[wall.end_point1.x, wall.end_point2.x], [wall.end_point1.y, wall.end_point2.y]])
+        for wall in self.obstacles:
+            walls.append([[wall.end_point1.x, wall.end_point2.x], [wall.end_point1.y, wall.end_point2.y]])
+
+        return walls, goal, subgoals, starting
 
 
 class MazePoint:
