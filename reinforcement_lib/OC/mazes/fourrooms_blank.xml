@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='us-ascii'?>
+<world>
+    <experimentStartPositions>
+        <pos x="-4.0" y="-4.0" theta="1.5707963267948966" />
+    </experimentStartPositions>
+
+    <!-- <goal id="1" x="4.0" y="4.0" /> -->
+    <goal id="1" x="4.0" y="4.0" />
+
+
+    <wall x1="5.0" y1="5.0" x2="-5.0" y2="5.0" />
+    <wall x1="-5.0" y1="5.0" x2="-5.0" y2="-5.0" />
+    <wall x1="-5.0" y1="-5.0" x2="5.0" y2="-5.0" />
+    <wall x1="5.0" y1="-5.0" x2="5.0" y2="5.0" />
+
+</world>

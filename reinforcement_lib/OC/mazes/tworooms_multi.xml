@@ -1,0 +1,21 @@
+<?xml version='1.0' encoding='us-ascii'?>
+<world>
+	<experimentStartPositions>
+		<pos x="-3.0" y="-1.0" theta="1.5707963267948966" />
+	</experimentStartPositions>
+
+        <subgoals>
+                <pos x="3.5" y="0.0" theta="1" />
+                <pos x="-3.0" y="1.0" theta="2" />
+        </subgoals>
+
+	<goal id="1" x="-3.0" y="1.0" />
+
+	<wall x1="4.0" y1="2.0" x2="4.0" y2="-2.0" />
+	<wall x1="4.0" y1="-2.0" x2="-4.0" y2="-2.0" />
+	<wall x1="-4.0" y1="-2.0" x2="-4.0" y2="2.0" />
+	<wall x1="-4.0" y1="2.0" x2="4.0" y2="2.0" />
+
+	<wall x1="-4.0" y1="0.0" x2="3.0" y2="0.0" />
+
+</world>
