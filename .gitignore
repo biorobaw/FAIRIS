@@ -176,3 +176,5 @@ fairis_tools/experiment_tools/figure_generation/*
 *.DS_Store
 simulation/controllers/sandbox/*
 simulation/controllers/T*
+simulation/controllers/V*
+simulation/controllers/H*
