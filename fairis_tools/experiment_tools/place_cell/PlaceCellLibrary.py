@@ -153,9 +153,12 @@ class VisualPlaceCellNetwork:
             total_activation += pc.activity
         return total_activation
 
-    def get_all_pc_activations_normalized(self, robot_point):
+    def get_all_pc_activations_normalized(self, robot_point,norm_type = 'norm'):
         self.activate_pc_network(robot_point)
-        self.normilize_all_pc()
+        if norm_type == 'norm':
+            self.normilize_all_pc()
+        elif norm_type == 'min_max':
+            self.min_max_normalize_pc_activations()
         return np.array([pc.activity for pc in self.pc_list], dtype=np.float32)
 
     def print_pc_activations(self):
@@ -168,3 +171,20 @@ class VisualPlaceCellNetwork:
             total_activation = 1
         for pc in self.pc_list:
             pc.activity = pc.activity / total_activation
+
+    def min_max_normalize_pc_activations(self):
+        """
+        Perform min-max normalization on the place cell activations such that
+        the minimum activation becomes 0 and the maximum becomes 1.
+        """
+        activations = np.array([pc.activity for pc in self.pc_list])
+        min_activation = np.min(activations)
+        max_activation = np.max(activations)
+
+        if max_activation - min_activation == 0:
+            # Prevent division by zero in case all activations are the same
+            for pc in self.pc_list:
+                pc.activity = 1.0  # Set all activations to 1 (arbitrary choice)
+        else:
+            for pc in self.pc_list:
+                pc.activity = (pc.activity - min_activation) / (max_activation - min_activation)

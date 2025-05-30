@@ -1,309 +1,319 @@
 import pickle
-import torch
-import torchvision.models as models
 import os
+import gc
 import numpy as np
-from sklearn.cluster import KMeans, DBSCAN, AgglomerativeClustering, SpectralClustering, Birch
+from sklearn.cluster import KMeans, Birch
+from scipy.spatial.distance import cdist
+from sklearn.metrics import silhouette_score, davies_bouldin_score
+from sklearn.metrics import calinski_harabasz_score
+from scipy.spatial.distance import pdist, squareform
 import matplotlib.pyplot as plt
+import math
+from sklearn.metrics import homogeneity_score
+from scipy.stats import entropy
+from scipy.spatial import ConvexHull
+from matplotlib.patches import Ellipse
+from sklearn.cluster import DBSCAN
+import random
+from sklearn.neighbors import NearestNeighbors
+from sklearn.preprocessing import MinMaxScaler
+import pandas as pd
+from scipy.spatial.distance import pdist, squareform
+from scipy.stats import pearsonr
+import seaborn as sns
+from sklearn.cluster import KMeans
+from collections import defaultdict
+from matplotlib.animation import FuncAnimation
+from scipy.stats import kruskal
+from scipy.stats import f_oneway, kruskal
+from fairis_tools.experiment_tools.place_cell.PlaceCellLibrary import *
+
 os.chdir("../../..")
 print(os.getcwd())
 
-with open("data/VisualPlaceCellData/LM8_1000",'rb') as file:
-    data = pickle.load(file)
+with open("data/VisualPlaceCellData/LM8_Testing", 'rb') as file:
+    test_data = pickle.load(file)
 
+landmarks = [
+    (1.85, 1.85, (1.00, 0.00, 0.00)),
+    (0.00, 2.61, (0.00, 1.00, 0.00)),
+    (-1.85, 1.85, (0.00, 0.00, 1.00)),
+    (-2.61, 0.00, (1.00, 1.00, 0.00)),
+    (-2.61, 0.00, (1.00, 0.00, 1.00)),
+    (-1.85, -1.85, (0.00, 1.00, 1.00)),
+    (0.00, -2.61, (1.00, 0.50, 0.00)),
+    (1.85, -1.85, (0.50, 0.00, 0.50)),
+    (2.61, 0.00, (0.50, 0.50, 0.00))
+]
 
-n_clusters = 18  # You can change this based on how many clusters you expect
-
-# Function to plot clusters on the x, y plane
-def plot_clusters(xy_list, cluster_labels, name):
+def group_dataset_by_theta(dataset):
     """
-    Plot the clusters on the x, y plane using the original (x, y) coordinates, and save the figure.
+    Groups observations in the dataset by unique theta values. This function
+    does not consider spatial proximity (x, y coordinates) during grouping.
 
-    Args:
-    - xy_list (list of tuples): The original x, y coordinates for each datapoint.
-    - cluster_labels (list of int): The cluster label for each datapoint.
-    - name (str): The filename to save the figure as (e.g., "clusters_plot.png").
-    """
-    # Convert xy_list to NumPy arrays for easy plotting
-    x_coords = np.array([x for x, y in xy_list])
-    y_coords = np.array([y for x, y in xy_list])
-
-    # Check if the lengths match
-    if len(x_coords) != len(cluster_labels):
-        raise ValueError(f"Mismatch: {len(x_coords)} coordinates and {len(cluster_labels)} cluster labels.")
-
-    # Scatter plot with color coding for clusters
-    plt.figure(figsize=(8, 6))
-    scatter = plt.scatter(x_coords, y_coords, c=cluster_labels, cmap='rainbow', alpha=0.7)
-
-    # Add color bar to indicate clusters
-    plt.colorbar(scatter, label='Cluster')
-
-    # Add labels and title
-    plt.xlabel('X Coordinate')
-    plt.ylabel('Y Coordinate')
-    plt.title(f'Clustering with {len(set(cluster_labels))} Clusters on X-Y Plane')
-
-    # Save the plot to the specified file
-    plt.savefig(name)
-
-    # Close the plot to avoid displaying it when running in scripts
-    plt.close()
-
-
-def plot_clusters_by_subplots(xy_list, cluster_labels, name, n_clusters=8):
-    """
-    Plot the clusters on 8 subplots, one for each cluster, using the original (x, y) coordinates.
-
-    Args:
-    - xy_list (list of tuples): The original x, y coordinates for each datapoint.
-    - cluster_labels (list of int): The cluster label for each datapoint.
-    - n_clusters (int): Number of clusters to plot (default is 8).
-    """
-    # Convert xy_list to NumPy arrays for easy filtering and plotting
-    x_coords = np.array([x for x, y in xy_list])
-    y_coords = np.array([y for x, y in xy_list])
-
-    # Create subplots (arranged as 4 rows, 2 columns for 8 clusters)
-    fig, axes = plt.subplots(3, 6, figsize=(30, 20))  # 4 rows, 2 columns for 8 clusters
-    axes = axes.flatten()  # Flatten the axes array for easy indexing
-
-    # Plot each cluster on its respective subplot
-    for cluster_id in range(n_clusters):
-        # Get the indices of the datapoints that belong to the current cluster
-        cluster_indices = np.where(cluster_labels == cluster_id)[0]
-
-        # Filter x and y coordinates for the current cluster
-        cluster_x = x_coords[cluster_indices]
-        cluster_y = y_coords[cluster_indices]
-
-        # Scatter plot for the current cluster
-        axes[cluster_id].scatter(cluster_x, cluster_y, c=f'C{cluster_id}', alpha=0.7)
-
-        # Set subplot title and labels
-        axes[cluster_id].set_title(f'Cluster {cluster_id}')
-        axes[cluster_id].set_xlabel('X Coordinate')
-        axes[cluster_id].set_ylabel('Y Coordinate')
-
-    # Adjust layout for better spacing
-    plt.tight_layout()
-
-    # Show the plot
-    fig.savefig(name)
-    plt.close()
-
-
-# Load pre-trained ResNet50 model and remove classification layers for feature extraction
-resnet50 = models.resnet50(pretrained=True)
-resnet50 = torch.nn.Sequential(*list(resnet50.children())[:-2])  # Remove the fully connected layers
-resnet50.eval()  # Set model to evaluation mode
-
-
-# Function to process a single image and extract features, with additional landmark and orientation data
-def process_datapoint(image_tensor, landmarks_binary_list, orientation_radians):
-    """
-    Process a single image tensor through ResNet50, and augment the features with
-    the binary list of detected landmarks and the robot's orientation.
-
-    Args:
-    - image_tensor (torch.Tensor): The image tensor from Webots camera.
-    - landmarks_binary_list (list of int): Binary list indicating which landmarks are detected in the image.
-    - orientation_radians (float): The robot's orientation in radians from the IMU.
+    Parameters:
+    - dataset: An object with an 'observations' attribute, which is a list of observations.
+               Each observation is expected to have a 'theta' attribute.
 
     Returns:
-    - full_features (numpy array): The combined feature vector from ResNet50, landmarks, and orientation.
+    - dict: A dictionary where the keys are unique theta values, and the values are
+            lists of observations corresponding to each theta.
     """
-    with torch.no_grad():
-        # Extract ResNet50 features
-        features = resnet50(image_tensor.unsqueeze(0))  # Add batch dimension (unsqueeze adds a batch dimension)
-        flattened_features = features.view(features.size(0), -1)  # Flatten to [1, 2048 * 7 * 7]
-        flattened_features = flattened_features.cpu().numpy().squeeze()  # Convert to NumPy array and remove extra dimensions
+    # Initialize a dictionary to store the grouped observations by theta
+    theta_groups = defaultdict(list)
 
-    # Convert the binary landmark list and orientation to a NumPy array
-    landmarks_and_orientation = np.array(landmarks_binary_list + [orientation_radians], dtype=np.float32)
+    # Iterate through the observations and group them by their theta value
+    for observation in dataset.observations:
+        theta_groups[observation.theta].append(observation)
 
-    # Concatenate the ResNet features with the landmarks and orientation
-    full_features = np.concatenate((flattened_features, landmarks_and_orientation))
-
-    return full_features
+    return theta_groups
 
 
-# Function to extract features from each datapoint, including landmarks and orientation
-def extract_features_with_landmarks_and_orientation(dataset):
+def select_knn_with_orientation(grouped_data, orientation, k, mode='nearest_same_orientation'):
     """
-    Extract features from the dataset one by one, augmenting with landmarks and orientation.
+    Selects k data points based on spatial proximity and orientation.
 
-    Args:
-    - dataset (PovDataset): The dataset containing Datapoint objects.
+    Parameters:
+    - grouped_data: dict, output of group_dataset_by_theta function {theta: [data_points]}.
+    - orientation: float, the orientation (theta) to select the initial data point from.
+    - k: int, the number of neighbors to select.
+    - mode: str, selection mode ('nearest_same_orientation', 'farthest_same_orientation',
+             'farthest_different_orientation', 'nearest_different_orientation').
 
     Returns:
-    - features_list (list of numpy arrays): A list of feature vectors for each image in the dataset.
-    - xy_labels (list of tuples): A list of (x, y) coordinates corresponding to each feature vector.
+    - list: A list containing k selected data points based on the chosen mode.
     """
-    features_list = []
-    xy_labels = []
-    count = 1
-    # Process each datapoint individually
-    for datapoint in dataset.data:
-        print("Processing data point: ", count)
-        count += 1
-        # Extract landmarks and orientation (simulated here as placeholders, replace with actual values)
-        landmarks_binary_list = datapoint.landmark_mask  # Assume this is part of your dataset
-        orientation_radians = datapoint.theta  # Assume this is part of your dataset
+    if mode not in ['nearest_same_orientation', 'farthest_same_orientation',
+                    'farthest_different_orientation', 'nearest_different_orientation']:
+        raise ValueError("Invalid mode. Choose from 'nearest_same_orientation', 'farthest_same_orientation', "
+                         "'farthest_different_orientation', or 'nearest_different_orientation'.")
 
-        # Extract features from the image tensor, and include the landmarks and orientation
-        features = process_datapoint(datapoint.image_tensor, landmarks_binary_list, orientation_radians)
-        features_list.append(features)
+    if mode == 'nearest_same_orientation':
+        # Get all points with the same orientation
+        if orientation not in grouped_data or len(grouped_data[orientation]) == 0:
+            raise ValueError(f"No data points available for the specified orientation: {orientation}")
 
-        # Keep track of the (x, y) coordinates
-        xy_labels.append((datapoint.x, datapoint.y))
+        data_points = grouped_data[orientation]
 
-    return features_list, xy_labels
+        # Randomly select an initial data point
+        selected_point = random.choice(data_points)
+        selected_point_coords = np.array([selected_point.x, selected_point.y])
 
-features, xy_list = extract_features_with_landmarks_and_orientation(data)
+        # Find the k nearest neighbors
+        distances = cdist([selected_point_coords], [(dp.x, dp.y) for dp in data_points])[0]
+        nearest_indices = np.argsort(distances)[:k + 1]  # +1 to include the selected point
 
+        # Return the initial point and k nearest neighbors
+        return [data_points[i] for i in nearest_indices if data_points[i] != selected_point][:k]
 
-# Function to perform KMeans clustering
-def cluster_with_kmeans(features_list, n_clusters):
+    if mode == 'nearest_different_orientation':
+        # Get all points with different orientations
+        candidate_points = [dp for theta, points in grouped_data.items() if theta != orientation for dp in points]
+        if len(candidate_points) == 0:
+            raise ValueError("No data points available with different orientations.")
+
+        # Randomly select an initial data point
+        selected_point = random.choice(candidate_points)
+        selected_point_coords = np.array([selected_point.x, selected_point.y])
+
+        # Compute distances to all candidates
+        distances = cdist([selected_point_coords], [(dp.x, dp.y) for dp in candidate_points])[0]
+        nearest_indices = np.argsort(distances)[:k]  # Select k nearest neighbors
+
+        return [candidate_points[i] for i in nearest_indices]
+
+    if mode in ['farthest_same_orientation', 'farthest_different_orientation']:
+        if mode == 'farthest_same_orientation':
+            if orientation not in grouped_data or len(grouped_data[orientation]) == 0:
+                raise ValueError(f"No data points available for the specified orientation: {orientation}")
+            candidate_points = grouped_data[orientation]
+        else:
+            # Different orientation points
+            candidate_points = [dp for theta, points in grouped_data.items() if theta != orientation for dp in points]
+            if len(candidate_points) == 0:
+                raise ValueError("No data points available with different orientations.")
+
+        # Step 3: Convert points to (x, y) coordinates
+        candidate_coords = np.array([(dp.x, dp.y) for dp in candidate_points])
+
+        # Step 4: Greedy selection of k points that maximize pairwise distances
+        # Randomly select the first point
+        selected_indices = [random.randint(0, len(candidate_coords) - 1)]
+        selected_points = [candidate_points[selected_indices[0]]]
+
+        while len(selected_indices) < k:
+            # Calculate distances from the current set of selected points to all candidates
+            distances_to_selected = np.min(cdist(candidate_coords, candidate_coords[selected_indices]), axis=1)
+
+            # Exclude already selected points
+            distances_to_selected[selected_indices] = -np.inf
+
+            # Select the point with the maximum distance to the current selection
+            next_index = np.argmax(distances_to_selected)
+            selected_indices.append(next_index)
+            selected_points.append(candidate_points[next_index])
+
+        return selected_points
+
+def calculate_similarity_metrics(grouped_data, pc_network, n=20, mode='nearest_same_orientation',
+                                 feature_type='multimodal'):
     """
-    Perform KMeans clustering on the extracted features.
+    Calculate similarity metrics by repeatedly grouping data points using the specified mode.
 
-    Args:
-    - features_list (list of numpy arrays): The feature vectors extracted from the images.
-    - n_clusters (int): The number of clusters to form.
+    Parameters:
+    - grouped_data: dict, output of group_dataset_by_theta function {theta: [data_points]}.
+    - pc_network: object, the place cell network used to get activations.
+    - n: int, number of times to perform grouping and calculate similarity metrics (default 20).
+    - mode: str, selection mode ('nearest_same_orientation', 'farthest_same_orientation', or 'farthest_different_orientation').
+    - feature_type: str, feature type used to calculate activations ('cnn' or 'multimodal').
 
     Returns:
-    - cluster_labels (list of int): The cluster label for each datapoint.
+    - DataFrame: A dataset of cosine similarity, Pearson correlation, and Euclidean distance for each iteration.
+    - dict: The average values of each similarity metric across all iterations.
     """
-    # Convert feature list to a NumPy array for KMeans
-    features_array = np.array(features_list)
+    results = []
 
-    # Perform KMeans clustering
-    kmeans = KMeans(n_clusters=n_clusters, random_state=42)  # Set random_state for reproducibility
-    cluster_labels = kmeans.fit_predict(features_array)
+    for i in range(n):
+        # Step 1: Select a group of data points using the specified mode
+        selected_points = select_knn_with_orientation(grouped_data,
+                                                      orientation=random.choice(list(grouped_data.keys())), k=5,
+                                                      mode=mode)
 
-    return cluster_labels
+        # Step 2: Compute place cell activations for each selected point
+        activation_vectors = []
+        for dp in selected_points:
+            if feature_type == 'cnn':
+                activations = pc_network.get_all_pc_activations_normalized(dp.cnn_feature_vector, norm_type='min_max')
+            else:
+                activations = pc_network.get_all_pc_activations_normalized(dp.multimodal_feature_vector,
+                                                                           norm_type='min_max')
+            activation_vectors.append(activations)
 
-cluster_labels = cluster_with_kmeans(features, n_clusters)
+        activation_vectors = np.array(activation_vectors)
 
-# Now plot the clusters
-plot_clusters(xy_list, cluster_labels, "data/figures/Clustering/knn.png")
+        # Step 3: Calculate similarity metrics
+        cosine_sim_matrix = 1 - squareform(pdist(activation_vectors, metric='cosine'))
+        euclidean_dist_matrix = squareform(pdist(activation_vectors, metric='euclidean'))
+        n_place_cells = len(pc_network.pc_list)
+        euclidean_scale = np.sqrt(n_place_cells)
 
-plot_clusters_by_subplots(xy_list, cluster_labels, "data/figures/Clustering/knn_clusters.png", n_clusters=n_clusters)
+        # Pearson correlation matrix
+        num_vectors = len(activation_vectors)
+        pearson_corr_matrix = np.zeros((num_vectors, num_vectors))
+        for j in range(num_vectors):
+            for k in range(num_vectors):
+                if j != k:
+                    pearson_corr, _ = pearsonr(activation_vectors[j], activation_vectors[k])
+                    pearson_corr_matrix[j, k] = pearson_corr
+                else:
+                    pearson_corr_matrix[j, k] = 1  # Correlation with itself
+
+        # Step 4: Calculate average metrics for the current iteration
+        avg_cosine_sim = np.mean(cosine_sim_matrix[np.triu_indices(num_vectors, k=1)])
+        avg_pearson_corr = np.mean(pearson_corr_matrix[np.triu_indices(num_vectors, k=1)])
+        avg_euclidean_dist = np.mean(euclidean_dist_matrix[np.triu_indices(num_vectors, k=1)])
+
+        # Store the results
+        results.append({
+            'Iteration': i + 1,
+            'Avg Cosine Similarity': avg_cosine_sim,
+            'Avg Pearson Correlation': avg_pearson_corr,
+            'Avg Euclidean Distance': avg_euclidean_dist
+        })
+
+    # Convert results to a DataFrame
+    results_df = pd.DataFrame(results)
+
+    # Calculate overall averages
+    averages = {
+        'Average Cosine Similarity': results_df['Avg Cosine Similarity'].mean(),
+        'Average Pearson Correlation': results_df['Avg Pearson Correlation'].mean(),
+        'Average Euclidean Distance': results_df['Avg Euclidean Distance'].mean()
+    }
+
+    return results_df, averages
 
 
-def cluster_with_dbscan(features_list, eps=0.5, min_samples=5):
+def analyze_similarity_across_modes(grouped_data, pc_network, n=20, feature_type='multimodal'):
     """
-    Perform DBSCAN clustering on the extracted features.
+    Perform similarity analysis across different grouping modes, calculate averages,
+    and test for significant differences between the modes using raw samples.
 
-    Args:
-    - features_list (list of numpy arrays): The feature vectors extracted from the images.
-    - eps (float): The maximum distance between two samples for them to be considered as in the same neighborhood.
-    - min_samples (int): The number of samples in a neighborhood for a point to be considered a core point.
+    Parameters:
+    - grouped_data: dict, output of group_dataset_by_theta function {theta: [data_points]}.
+    - pc_network: object, the place cell network used to get activations.
+    - n: int, number of iterations for each mode (default 20).
+    - feature_type: str, feature type used to calculate activations ('cnn' or 'multimodal').
 
     Returns:
-    - cluster_labels (list of int): The cluster label for each datapoint. Points classified as noise are labeled as -1.
+    - None, but prints the summary of averages and statistical test findings.
     """
-    # Convert feature list to a NumPy array for DBSCAN
-    features_array = np.array(features_list)
 
-    # Perform DBSCAN clustering
-    dbscan = DBSCAN(eps=eps, min_samples=min_samples)
-    cluster_labels = dbscan.fit_predict(features_array)
+    # Modes to analyze
+    modes = ['nearest_same_orientation', 'farthest_same_orientation',
+             'farthest_different_orientation', 'nearest_different_orientation']
 
-    return cluster_labels
+    # Store raw DataFrames for statistical testing
+    combined_df_list = []
 
-cluster_labels = cluster_with_dbscan(features)
+    for mode in modes:
+        # Calculate similarity metrics for the given mode
+        results_df, averages = calculate_similarity_metrics(grouped_data, pc_network, n=n, mode=mode,
+                                                            feature_type=feature_type)
 
-# Now plot the clusters
-plot_clusters(xy_list, cluster_labels, "data/figures/Clustering/dbscan.png")
+        # Add the mode as a column to the results DataFrame
+        results_df['Mode'] = mode
+        combined_df_list.append(results_df)
 
-plot_clusters_by_subplots(xy_list, cluster_labels, "data/figures/Clustering/dbscan_clusters.png", n_clusters=8)
+        # Print averages for this mode
+        print(f"\nAverages for {mode}:")
+        for metric, avg in averages.items():
+            print(f"  {metric}: {avg:.4f}")
 
+    # Combine all the results into a single DataFrame
+    combined_df = pd.concat(combined_df_list, ignore_index=True)
 
-def cluster_with_agglomerative(features_list, n_clusters=8):
-    """
-    Perform Agglomerative Clustering on the extracted features.
+    # Step 2: Perform ANOVA using raw results
+    print("\n\n=== ANOVA Tests ===")
+    metrics = ['Avg Cosine Similarity', 'Avg Pearson Correlation', 'Avg Euclidean Distance']
 
-    Args:
-    - features_list (list of numpy arrays): The feature vectors extracted from the images.
-    - n_clusters (int): The number of clusters to find.
+    for metric in metrics:
+        # Perform ANOVA on the raw results
+        f_stat, p_value = f_oneway(combined_df[combined_df['Mode'] == 'nearest_same_orientation'][metric],
+                                   combined_df[combined_df['Mode'] == 'nearest_different_orientation'][metric],
+                                   combined_df[combined_df['Mode'] == 'farthest_same_orientation'][metric],
+                                   combined_df[combined_df['Mode'] == 'farthest_different_orientation'][metric])
+        print(f"\nANOVA for {metric}: F-statistic = {f_stat:.4f}, p-value = {p_value:.4f}")
 
-    Returns:
-    - cluster_labels (list of int): The cluster label for each datapoint.
-    """
-    # Convert feature list to a NumPy array for Agglomerative Clustering
-    features_array = np.array(features_list)
+        if p_value < 0.05:
+            print(f"  Significant difference found in {metric} across modes (p < 0.05)")
+        else:
+            print(f"  No significant difference in {metric} (p = {p_value:.4f})")
 
-    # Perform Agglomerative Clustering
-    agglomerative = AgglomerativeClustering(n_clusters=n_clusters)
-    cluster_labels = agglomerative.fit_predict(features_array)
+    # Step 3: Perform Kruskal-Wallis test as a backup
+    print("\n=== Backup Kruskal-Wallis Tests ===")
+    for metric in metrics:
+        stat, p_value = kruskal(combined_df[combined_df['Mode'] == 'nearest_same_orientation'][metric],
+                                combined_df[combined_df['Mode'] == 'nearest_different_orientation'][metric],
+                                combined_df[combined_df['Mode'] == 'farthest_same_orientation'][metric],
+                                combined_df[combined_df['Mode'] == 'farthest_different_orientation'][metric])
+        print(f"Kruskal-Wallis test for {metric}: Statistic = {stat:.4f}, p-value = {p_value:.4f}")
 
-    return cluster_labels
+feature_modes = ['multimodal', 'cnn']
+num_pc = [10,20,100,500]
+for feature_mode in feature_modes:
+    for n in num_pc:
+        file_name = feature_mode+'_kmeans_'+str(n)+'centers'
+        with open("data/VisualPlaceCellData/VisualPlaceCellClusters/multimodal_kmeans_20centers",'rb') as file:
+            data = pickle.load(file)
 
+        pc_network = VisualPlaceCellNetwork()
+        for cluster in data:
+            pc_network.add_pc_to_network(cluster[0],radius=cluster[1])
 
-cluster_labels = cluster_with_agglomerative(features, n_clusters)
+        del data
+        out1 = gc.collect()
 
-# Now plot the clusters
-plot_clusters(xy_list, cluster_labels, "data/figures/Clustering/agglomerative.png")
-
-plot_clusters_by_subplots(xy_list, cluster_labels, "data/figures/Clustering/agglomerative_clusters.png", n_clusters=n_clusters)
-
-
-def cluster_with_spectral(features_list, n_clusters=8):
-    """
-    Perform Spectral Clustering on the extracted features.
-
-    Args:
-    - features_list (list of numpy arrays): The feature vectors extracted from the images.
-    - n_clusters (int): The number of clusters to find.
-
-    Returns:
-    - cluster_labels (list of int): The cluster label for each datapoint.
-    """
-    # Convert feature list to a NumPy array for Spectral Clustering
-    features_array = np.array(features_list)
-
-    # Perform Spectral Clustering
-    spectral = SpectralClustering(n_clusters=n_clusters, affinity='nearest_neighbors', random_state=42)
-    cluster_labels = spectral.fit_predict(features_array)
-
-    return cluster_labels
-
-
-cluster_labels = cluster_with_spectral(features, n_clusters)
-
-# Now plot the clusters
-plot_clusters(xy_list, cluster_labels, "data/figures/Clustering/spectral.png")
-
-plot_clusters_by_subplots(xy_list, cluster_labels, "data/figures/Clustering/spectral_clusters.png", n_clusters=n_clusters)
-
-
-
-def cluster_with_birch(features_list, n_clusters=8):
-    """
-    Perform BIRCH clustering on the extracted features.
-
-    Args:
-    - features_list (list of numpy arrays): The feature vectors extracted from the images.
-    - n_clusters (int): The number of clusters to find.
-
-    Returns:
-    - cluster_labels (list of int): The cluster label for each datapoint.
-    """
-    # Convert feature list to a NumPy array for BIRCH
-    features_array = np.array(features_list)
-
-    # Perform BIRCH clustering
-    birch = Birch(n_clusters=n_clusters)
-    cluster_labels = birch.fit_predict(features_array)
-
-    return cluster_labels
-
-
-cluster_labels = cluster_with_birch(features, n_clusters)
-
-# Now plot the clusters
-plot_clusters(xy_list, cluster_labels, "data/figures/Clustering/birch.png")
-
-plot_clusters_by_subplots(xy_list, cluster_labels, "data/figures/Clustering/birch_clusters.png", n_clusters=n_clusters)
+        # Group the data by Theta
+        grouped_data = group_dataset_by_theta(test_data)
+        analyze_similarity_across_modes(grouped_data, pc_network, n=n, feature_type=feature_mode)

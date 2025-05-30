@@ -1,13 +1,11 @@
-#VRML_SIM R2023b utf8
+#VRML_SIM R2025a utf8
 
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023a/projects/objects/backgrounds/protos/TexturedBackground.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023a/projects/objects/backgrounds/protos/TexturedBackgroundLight.proto"
-IMPORTABLE EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023a/projects/robots/husarion/rosbot/protos/Rosbot.proto"
-IMPORTABLE EXTERNPROTO "../protos/WorldObjects/Obstacle.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023a/projects/objects/floors/protos/Floor.proto"
-IMPORTABLE EXTERNPROTO "../protos/ROSbot/ROSbot_Lidar.proto"
-IMPORTABLE EXTERNPROTO "../protos/ROSbot/ROSbot_Camera.proto"
 IMPORTABLE EXTERNPROTO "../protos/WorldObjects/Landmark.proto"
+IMPORTABLE EXTERNPROTO "../protos/WorldObjects/Obstacle.proto"
+EXTERNPROTO "../protos/HamBot/HamBot.proto"
 
 WorldInfo {
   ERP 1
@@ -15,7 +13,7 @@ WorldInfo {
 }
 Viewpoint {
   orientation -0.5773466778819134 0.5773466060513335 0.5773575235672647 2.0943301017787865
-  position -0.000389214340633548 -0.00038919849624319963 14.165933751654173
+  position -0.0005125671439752313 -0.0005865566987858239 18.105816252755975
 }
 TexturedBackground {
 }
@@ -26,28 +24,7 @@ Floor {
   name "Maze Floor"
   tileSize 2 2
 }
-DEF Agent Rosbot {
-  translation 3.068860920170147e-12 -1.3155904555854636e-09 -0.000562585249692632
-  rotation 0 0 1 1.57
-  controller "<extern>"
-  supervisor TRUE
-  cameraSlot [
-    ROSbot_Camera {
-      translation 0.08 0 -0.055
-      name "camera"
-    }
-    Display {
-      name "Place Cell Display"
-      width 400
-      height 400
-    }
-  ]
-  lidarSlot [
-    ROSbot_Lidar {
-      translation -0.02 0 0.096
-      name "lidar"
-    }
-    GPS {
-    }
-  ]
+HamBot {
+  translation 0 0 -0.0014906773485103275
+  rotation 0.0 0.0 1.0 1.5700000123998166
 }

@@ -2,7 +2,7 @@ import numpy as np
 from fairis_lib.simulation_lib.noise import apply_noise
 from tf_agents.environments import py_environment
 from tf_agents.specs import array_spec
-from fairis_lib.robot_lib import rosbot
+from fairis_lib.robot_lib.hambot import HamBot
 import gym
 from gym.spaces import Discrete
 
@@ -16,7 +16,7 @@ class WebotsEnv(py_environment.PyEnvironment):
         self.current_step = 0
         self.episode_counter = 0
         self.starting_permutaions = np.random.permutation(4)
-        self.robot = RosBot(action_length=action_length)
+        self.robot = HamBot(action_length=action_length)
         self.set_mode()
         self.action_space = Discrete(n=8)
 
