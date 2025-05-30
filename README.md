@@ -6,8 +6,8 @@ FAIRIS is a project framework that allows you to implement navigational control 
 
 To work with FAIRIS, ensure that your system meets the following requirements:
 
-### 1. Python 3.10+
-
+### 1. Python 3.10+ 
+NOTE: 3.12 is not compatible at this time! 
 #### **Windows Users**:
 - **Important**: It’s crucial to install Python 3.10+ from the Microsoft Store to avoid potential issues with PATH configurations and permissions.
 - **Installation Instructions**:
@@ -32,41 +32,45 @@ To work with FAIRIS, ensure that your system meets the following requirements:
    sudo apt-get install python3.10
    ```
 
-### 2. Cyberbotics Webots R2023b
+### 2. Cyberbotics Webots R2025a
 
-FAIRIS works in conjunction with Webots version R2023b. Ensure you install Webots correctly:
+FAIRIS-Lite works in conjunction with Webots version R2025a. Ensure you install Webots correctly:
 
 #### **Linux Users**:
-- **Do not install Webots from the Snap packaging** due to known compatibility issues. Instead, use the `.deb` 
+
+* **Do not install Webots from the Snap packaging** due to known compatibility issues. Instead, use the `.deb`
   package or tarball for installation.
-- **Installation Instructions**:
-  - Follow the detailed installation guide [here](https://cyberbotics.com/doc/guide/installation-procedure#installation-on-linux).
+* **Installation Instructions**:
+
+  * Follow the detailed installation guide [here](https://cyberbotics.com/doc/guide/installation-procedure#installation-on-linux).
 
 #### **Windows and macOS Users**:
-- Download and install Webots R2023b from the official [Cyberbotics website](https://cyberbotics.com/#download).
+
+* Download and install Webots R2023b from the official [Cyberbotics website](https://cyberbotics.com/#download).
 
 ### 3. Git
 
-Ensure that you have Git installed to clone the FAIRIS repository:
+Ensure that you have Git installed to clone the FAIRIS-Lite repository:
 
-- **Windows**: Download and install Git from [git-scm.com](https://git-scm.com/download/win).
-- **Linux**: Install Git via your package manager:
-  
-   ```shell
-   sudo apt-get install git
-   ```
+* **Windows**: Download and install Git from [git-scm.com](https://git-scm.com/download/win).
 
-- **macOS**: Install Git via Homebrew:
-  
-   ```shell
-   brew install git
-   ```
+* **Linux**: Install Git via your package manager:
+
+  ```shell
+  sudo apt-get install git
+  ```
+
+* **macOS**: Install Git via Homebrew:
+
+  ```shell
+  brew install git
+  ```
 
 ---
 
 ## Setup Instructions
 
-Follow these steps to set up FAIRIS on your local machine:
+Follow these steps to set up FAIRIS-Lite on your local machine:
 
 ### 1. Clone the Repository
 
@@ -77,104 +81,67 @@ Clone this repository onto your device. There are numerous ways to achieve this,
 ```shell
 git clone https://github.com/biorobaw/FAIRIS.git
 ```
-
-### 2. Set Up the Python Environment
-
-#### a. **Open a Terminal Session**
-
-- **MacOS**: Press Command + Space Bar, type "Terminal" in Spotlight, and click to open the app.
-- **Linux**: Press Ctrl + Alt + T to instantly launch a Terminal window.
-- **Windows**: Press the Windows Key + R, type `cmd.exe`, and press Enter.
-
-#### b. **Navigate to the Project Directory**
-
-Change your directory to the root of the FAIRIS project:
-
+ After you clone the Repo, CD into the directory by running 
 ```shell
-cd path_to/FAIRIS
+cd FAIRIS-Lite
 ```
+### 2. Run the Setup Script
 
-#### c. **Create a Python Virtual Environment**
+Run the provided setup script to configure the project. This script:
 
-Run the provided script to create a Python virtual environment using Python 3.10+ and install all necessary dependencies.
+* Searches for Python 3.11 (falls back to later 3.10 if needed)
+* Creates a Python virtual environment
+* Adds the FAIRIS root directory to the Python path
+* Automatically generates `runtime.ini` files in all controller directories
 
 ```shell
 python3 create_venv.py
 ```
 
-This script will:
-- Search for Python 3.10+ on your system and use it to create a virtual environment.
-- Install all required libraries in the virtual environment.
-- Add paths to the `fairis_tools` and `fairis_lib` packages.
+You should see output indicating that the venv was created and that the `runtime.ini` files were added.
 
-### 3. Activate Python Virtual environment
 
-After creating the virtual environment, you need to activate it before installing the FAIRIS packages.
+### 3. Activate Python Virtual Environment
+
+After creating the virtual environment, you need to activate it before using the FAIRIS-Lite packages.
 
 #### **Windows**:
 
 ```shell
-FAIRIS\ $ venv\Scripts\activate
+fairis_venv\Scripts\activate
 ```
 
 #### **macOS/Linux**:
 
 ```shell
-FAIRIS$ source venv/bin/activate
+source fairis_venv/bin/activate
 ```
 
-You should now see your terminal prompt change to indicate that the virtual environment is active (e.g., `(venv)` at the start of your command line).
+You should now see your terminal prompt change to indicate that the virtual environment is active (e.g., `(fairis_venv)` at the start of your command line).
 
+---
 
-### 4. Install FAIRIS Packages
+### 4. Install Required Python Packages
 
-#### a. With the virtual environment activated, install the FAIRIS packages:
+With the virtual environment activated, install all necessary dependencies using:
 
 ```shell
-pip install -e .
+pip install -r requirements.txt
 ```
 
-This command will install the `fairis_tools` and `fairis_lib` packages, making all classes and functions available for use in your Webots controllers.
+This will install all libraries needed for your Python Virtual environment to run FAIRIS-Lite in Webots.
 
-#### b. clean up after the installation of FAIRIS packages:
+---
+## Updating Runtime Configurations for New Controllers
 
-```shell
-rm -r fairis.egg-info/ 
-```
-
-This command will remove the fairis_lite.egg-info directory that are automatically generated during the 
-installation process.  
-
-### 5. Configure Webots
-
-You can configure Webots to use the correct Python environment in two ways: by running an automatic script or manually creating the necessary `runtime.ini` files in each controller directory.
-
-#### a. **Automatic Configuration**
-
-Simply run the provided script to automatically create and configure the `runtime.ini` files in all controller directories:
+If you create a **new controller directory** under `Simulation/controllers/`, you will need to **re-run** the 
+`add_runtime_ini.py` script to generate the appropriate `runtime.ini` file for that new controller:
 
 ```shell
 python3 add_runtime_ini.py
 ```
 
-This script will:
-- Locate all controller directories under `Simulation/controllers/`.
-- Create a `runtime.ini` file in each directory.
-- Set the Python command to the correct virtual environment's Python executable.
-- Note that you will need to run this everytime you create a new robot controller. 
-
-#### b. **Manual Configuration**
-
-If you prefer, you can manually create and configure the `runtime.ini` files. Follow these steps:
-
-1. Navigate to each controller directory under `Simulation/controllers/`.
-2. Create a file named `runtime.ini` in each directory.
-3. Add the following content to the `runtime.ini` file:
-
-```ini
-[python]
-COMMAND = path_to_your_venv/bin/python3
-```
+This ensures that Webots knows to use the correct Python interpreter from your virtual environment.
 
 ### Example Directory Structure for Manual Configuration
 
@@ -195,7 +162,7 @@ FAIRIS/
 │   ├── __init__.py
 │   ├── rosbot_lib
 │   │   ├──__init__.py
-│   │   ├── rosbot.py
+│   │   ├── hambot.py
 │   │   ├── my_robot.py
 │   ├── simulation_lib
 │   │   ├──__init__.py
@@ -235,6 +202,6 @@ If everything works as expected, you’re ready to start developing your robot c
 
 - **Guide for Webots Controller Creation**: Detailed instructions for creating a new Webots Robot Controller can be 
   found [here](simulation/controllers/README.md).
-- **`RosBot` Library Documentation**: The `RosBot` class, which provides functions to access sensors, motors, and 
+- **`HamBot` Library Documentation**: The `HamBot` class, which provides functions to access sensors, motors, and 
   load objects in the simulated environment, is documented [here](fairis_lib/README.md).
 

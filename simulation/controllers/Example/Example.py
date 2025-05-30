@@ -3,13 +3,13 @@ os.chdir("../../..")
 
 """ExperimentSupervisor controller."""
 from fairis_tools.biology_tools import PlaceCellNetwork
-from fairis_lib.robot_lib import rosbot
+from fairis_lib.robot_lib.hambot import HamBot
 
 
 maze_file = 'simulation/worlds/mazes/Samples/LandmarkExample.xml'
 
 # create the robot/supervisor instance.
-robot = RosBot()
+robot = HamBot()
 
 # Loads the environment from the maze file
 robot.load_environment(maze_file)
