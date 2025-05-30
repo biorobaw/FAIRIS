@@ -166,7 +166,8 @@ cython_debug/
 # Dev code
 *.ini
 data/*
-simulation/worlds/mazes/Experiment1/Paths/*
+simulation/worlds/mazes/Experiment1/*
+simulation/worlds/mazes/VisualPlaceCells/*
 data/SavedModels/*
 data/DataCache/*
 !data/DataCache/temp.png
