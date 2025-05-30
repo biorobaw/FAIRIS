@@ -15,11 +15,11 @@
 	<landmark x="1.85" y="1.85" height="10" red="1.00" green="0.00" blue="0.00" />
 	<landmark x="0.00" y="2.61" height="10" red="0.00" green="1.00" blue="0.00" />
 	<landmark x="-1.85" y="1.85" height="10" red="0.00" green="0.00" blue="1.00" />
-	<landmark x="-2.61" y="0.00" height="10" red="1.00" green="1.00" blue="0.00" />
-	<landmark x="-1.85" y="-1.85" height="10" red="0.00" green="1.00" blue="1.00" />
+	<landmark x="-2.61" y="0.00" height="10"  red="0.00" green="1.00" blue="1.00"/>
+	<landmark x="-1.85" y="-1.85" height="10" red="1.00" green="0.00" blue="0.00" />
 	<landmark x="-0.00" y="-2.61" height="10" red="1.00" green="0.50" blue="0.00" />
-	<landmark x="1.85" y="-1.85" height="10" red="0.50" green="0.00" blue="0.50" />
-	<landmark x="2.61" y="0.00" height="10" red="1.00" green="0.20" blue="1.00" />
+	<landmark x="1.85" y="-1.85" height="10" red="1.00" green="0.00" blue="0.00" />
+	<landmark x="2.61" y="0.00" height="10" red="0.50" green="0.50" blue="0.00" />
 
     <experimentStartPositions>
 		<pos x="2.11" y="0.00" theta="1.5707963267948966" />

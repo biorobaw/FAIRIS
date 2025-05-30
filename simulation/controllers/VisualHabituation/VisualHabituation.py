@@ -2,7 +2,7 @@ import os
 import torch
 os.chdir("../../..")
 print(os.getcwd())
-from fairis_lib.robot_lib.rosbot import RosBot
+from fairis_lib.robot_lib.hambot import HamBot
 from fairis_tools.experiment_tools.loggers.visual_data_set import PovDataset
 import pickle
 
@@ -24,7 +24,7 @@ landmark_dictionary = {
 maze_files = ['LM8']
 number_steps = 250
 # create the robot/supervisor instance.
-robot = RosBot(enable_cnn_features=True)
+robot = HamBot(enable_cnn_features=True)
 
 for maze in maze_files:
     robot.load_environment(maze_file_dir + maze + '.xml')
