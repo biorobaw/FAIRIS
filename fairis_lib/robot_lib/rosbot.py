@@ -434,6 +434,23 @@ class RosBot(Supervisor):
         self.previous_action_index = random_action_index
         return random_action_index
 
+    def perform_habituation_action(self, bias=True):
+        available_actions = [int(i) for i in self.get_possible_actions()]
+        # Add motion Bias and normalize
+        if bias:
+            action_distribution = apply_softmax(add_motion_bias(available_actions, self.previous_action_index))
+        else:
+            action_distribution = apply_softmax(available_actions)
+        random_action_index = np.random.choice(8, 1, p=action_distribution)[0]
+        if self.check_if_action_is_possible(random_action_index):
+            self.perform_training_action_teleport(random_action_index)
+        else:
+            random_action_index = np.argmax(action_distribution)
+            self.perform_training_action_teleport(random_action_index)
+
+        self.previous_action_index = random_action_index
+        self.sensor_calibration()
+        return random_action_index
     def perform_action_with_PID(self, action_index):
         action = self.action_set.get(action_index)
         if self.check_if_action_is_possible(action_index=action_index):
@@ -465,7 +482,7 @@ class RosBot(Supervisor):
         return self.get_robot_pose()
 
     def get_possible_actions(self):
-        min_action_distance = self.action_length + 0.2
+        min_action_distance = self.action_length + 0.25
         while self.experiment_supervisor.step(self.timestep) != -1:
             relative_distances = RelativeDistances(lidar_range_image=self.lidar.getRangeImage())
             available_actions = [0] * 8

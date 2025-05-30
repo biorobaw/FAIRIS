@@ -173,3 +173,4 @@ data/DataCache/*
 gaivi_scripts/*
 fairis_tools/experiment_tools/figure_generation/*
 *.DS_Store
+simulation/controllers/sandbox/*
