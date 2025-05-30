@@ -34,7 +34,7 @@ NOTE: 3.12 is not compatible at this time!
 
 ### 2. Cyberbotics Webots R2025a
 
-FAIRIS-Lite works in conjunction with Webots version R2025a. Ensure you install Webots correctly:
+FAIRIS works in conjunction with Webots version R2025a. Ensure you install Webots correctly:
 
 #### **Linux Users**:
 
@@ -50,7 +50,7 @@ FAIRIS-Lite works in conjunction with Webots version R2025a. Ensure you install 
 
 ### 3. Git
 
-Ensure that you have Git installed to clone the FAIRIS-Lite repository:
+Ensure that you have Git installed to clone the FAIRIS repository:
 
 * **Windows**: Download and install Git from [git-scm.com](https://git-scm.com/download/win).
 
@@ -70,7 +70,7 @@ Ensure that you have Git installed to clone the FAIRIS-Lite repository:
 
 ## Setup Instructions
 
-Follow these steps to set up FAIRIS-Lite on your local machine:
+Follow these steps to set up FAIRIS on your local machine:
 
 ### 1. Clone the Repository
 
@@ -83,7 +83,7 @@ git clone https://github.com/biorobaw/FAIRIS.git
 ```
  After you clone the Repo, CD into the directory by running 
 ```shell
-cd FAIRIS-Lite
+cd FAIRIS
 ```
 ### 2. Run the Setup Script
 
@@ -103,7 +103,7 @@ You should see output indicating that the venv was created and that the `runtime
 
 ### 3. Activate Python Virtual Environment
 
-After creating the virtual environment, you need to activate it before using the FAIRIS-Lite packages.
+After creating the virtual environment, you need to activate it before using the FAIRIS packages.
 
 #### **Windows**:
 
@@ -129,7 +129,7 @@ With the virtual environment activated, install all necessary dependencies using
 pip install -r requirements.txt
 ```
 
-This will install all libraries needed for your Python Virtual environment to run FAIRIS-Lite in Webots.
+This will install all libraries needed for your Python Virtual environment to run FAIRIS in Webots.
 
 ---
 ## Updating Runtime Configurations for New Controllers
