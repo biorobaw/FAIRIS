@@ -61,9 +61,10 @@ class Maze:
         self.goal_locations = []
         self.obstacles = []
         self.walls = []
-        self.landmarks = []
+        self.cylinder_landmarks = []
+        self.tag_landmarks = []
 
-        walls, goals, experiment_start_positions, habituation_start_positions, landmarks = parse_maze(maze_file)
+        walls, goals, experiment_start_positions, habituation_start_positions, cylinder_landmarks, tag_landmarks = parse_maze(maze_file)
         for index, row in walls.iterrows():
             if index <= 3:
                 self.boundary_walls.append(BoundaryWall(row['x1'], row['y1'], row['x2'], row['y2'], width=row['width'], id=index))
@@ -80,8 +81,17 @@ class Maze:
         for index, row in goals.iterrows():
             self.goal_locations.append(Goal(row['x'], row['y'], row['id']))
 
-        for index, row in landmarks.iterrows():
-            self.landmarks.append(Landmark(row['x'], row['y'], color=[row['red'], row['green'], row['blue']], id=index))
+        for index, row in cylinder_landmarks.iterrows():
+            self.cylinder_landmarks.append(CylinderLandmark(row['x'], row['y'], color=[row['red'], row['green'], row['blue']], id=index))
+
+        for index, row in tag_landmarks.iterrows():
+            self.tag_landmarks.append(TagLandmark(row['x'],
+                                                  row['y'],
+                                                  row['theta'],
+                                                  row['tag_id'],
+                                                  row['height'],
+                                                  row['width'],
+                                                  color=[row['red'], row['green'], row['blue']]))
 
         self.make_maze_plot(display_width, display_height)
 
@@ -155,7 +165,7 @@ class StartingPosition(MazePoint):
 
 
 class BoundaryWall:
-    def __init__(self, x1, y1, x2, y2, height=0.5, width=0.012, id=0):
+    def __init__(self, x1, y1, x2, y2, height=0.3, width=0.012, id=0):
         self.end_point1 = MazePoint(x1, y1)
         self.end_point2 = MazePoint(x2, y2)
         self.height = height
@@ -191,7 +201,7 @@ class BoundaryWall:
 
 
 class Obstacle:
-    def __init__(self, x1, y1, x2, y2, height=0.5, width=0.012, id=0):
+    def __init__(self, x1, y1, x2, y2, height=0.3, width=0.012, id=0):
         self.end_point1 = MazePoint(x1, y1)
         self.end_point2 = MazePoint(x2, y2)
         self.height = height
@@ -225,11 +235,11 @@ class Obstacle:
                                                                size=self.get_webots_size_string())
         return 'DEF Obstacle_{id} Obstacle '.format(id=self.id) + '{ ' + node_string + ' }'
 
-
-class Landmark:
+class CylinderLandmark:
     def __init__(self, x, y, height=1.5, radius=.25, color=[1, 1, 1], id=0):
         self.height = height
         self.radius = radius
+
         self.x = x
         self.y = y
         self.z = height/2
@@ -258,3 +268,51 @@ class Landmark:
                                                             recognitionColors=self.get_webots_recognition_color_string(),
                                                             size=self.get_webots_size_string())
         return 'DEF Landmark_{id} Landmark '.format(id=self.id) + '{ ' + node_string + ' }'
+
+class TagLandmark:
+    def __init__(self, x, y, theta, tag_id, height, width, color=[1, 1, 1]):
+        self.height = height
+        self.width = width
+
+        self.x = x
+        self.y = y
+        self.theta = theta
+
+        self.z = self.height/2 + 0.3
+
+        self.translation = [x, y, self.z]
+        self.tag_id = tag_id
+        self.color = color
+        self.rotation = [0, 0, 1, theta]
+
+    def get_webots_translation_string(self):
+        txt = 'translation {x:.2f} {y:.2f} {z:.2f}'
+        return txt.format(x=self.translation[0], y=self.translation[1], z=self.translation[2])
+
+    def get_webots_rotation_string(self):
+        txt = 'rotation {x:.2f} {y:.2f} {z:.2f} {theta:-.2f}'
+        return txt.format(x=self.rotation[0], y=self.rotation[1], z=self.rotation[2], theta=self.rotation[3])
+
+    def get_webots_size_string(self):
+        txt = 'size {width:.2f} {height:.2f}'
+        return txt.format(width=self.width, height=self.height)
+
+    def get_webots_color_string(self):
+        txt = 'color {red:.2f} {green:.2f} {blue:.2f}'
+        return txt.format(red=self.color[0], green=self.color[1], blue=self.color[2])
+    def get_webots_recognition_color_string(self):
+        txt = 'recognitionColors [{red:.2f} {green:.2f} {blue:.2f}]'
+        return txt.format(red=self.color[0], green=self.color[1], blue=self.color[2])
+
+    def get_webots_tag_string(self):
+        txt = 'signImage ["{path_to_tag_image}"]'
+        return txt.format(path_to_tag_image='../protos/WorldObjects/LandMarkTags/landmark_tag_'+str(int(self.tag_id))+'.png')
+
+    def get_webots_node_string(self):
+        node_string = "{translation} {rotation} {color} {recognitionColors} {size} {signImage}".format(translation=self.get_webots_translation_string(),
+                                                            rotation=self.get_webots_rotation_string(),
+                                                            color=self.get_webots_color_string(),
+                                                            recognitionColors=self.get_webots_recognition_color_string(),
+                                                            size=self.get_webots_size_string(),
+                                                            signImage = self.get_webots_tag_string())
+        return 'DEF Tag_Landmark_{id} RectangularPanel '.format(id=int(self.tag_id)) + '{ ' + node_string + ' }'

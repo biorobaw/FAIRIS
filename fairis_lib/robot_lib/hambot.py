@@ -3,81 +3,14 @@ from reinforcement_lib.reinforcement_utils.model_functions import *
 from fairis_tools.experiment_tools.image_processing.image_feature_lib import *
 from fairis_lib.simulation_lib.environment import Maze
 from controller import Supervisor
-import torch
 from matplotlib import patches
-import torchvision.models as models
-from torchvision.models import ResNet50_Weights
-from torchvision import transforms
 import math
-
-class RelativeDistances:
-    def __init__(self, lidar_range_image, window=22):
-        self.window = window
-        self.lidar_range_image = lidar_range_image
-        self.bin_indices = {}
-
-        def get_range(center):
-            start = (center - window) % 360
-            end = (center + window) % 360
-            self.bin_indices[center] = (start, end)
-            if start <= end:
-                return lidar_range_image[start:end + 1]
-            else:
-                return lidar_range_image[start:] + lidar_range_image[:end + 1]
-
-        # Define directional bins centered at 45° increments
-        self.front_distances = get_range(180)
-        self.front_right_distances = get_range(225)
-        self.right_distances = get_range(270)
-        self.rear_right_distances = get_range(315)
-        self.rear_distances = get_range(0)
-        self.rear_left_distances = get_range(45)
-        self.left_distances = get_range(90)
-        self.front_left_distances = get_range(135)
-
-        # Clockwise ordering from front
-        self.distance_bins = [
-            self.front_distances,
-            self.front_right_distances,
-            self.right_distances,
-            self.rear_right_distances,
-            self.rear_distances,
-            self.rear_left_distances,
-            self.left_distances,
-            self.front_left_distances
-        ]
-
-    def __str__(self):
-        label_map = {
-            180: "Front",
-            225: "Front Right",
-            270: "Right",
-            315: "Rear Right",
-            0: "Rear",
-            45: "Rear Left",
-            90: "Left",
-            135: "Front Left"
-        }
-        output = ["Distance Bin Ranges (index-based):"]
-        for center in [180, 225, 270, 315, 0, 45, 90, 135]:
-            start, end = self.bin_indices[center]
-            output.append(f"{label_map[center]:<13}: start = {start}, end = {end}")
-        return "\n".join(output)
-
-
-
-
-# Function to calculate the angle and distance between two points (x1,y1) and (x2,y2)
-def calculate_motion_vector(x1, y1, x2, y2):
-    theta = int(math.degrees(math.atan2((y2 - y1), (x2 - x1))))
-    if theta < 0:
-        theta += 360
-    magnitude = math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
-    return np.array([theta, magnitude])
+from fairis_lib.robot_lib.robot_tools import *
+from fairis_tools.experiment_tools.image_processing.feature_extractor import FeatureExtractor
 class HamBot(Supervisor):
 
     # Initiilize an instance of Webots Harrison's RosBot
-    def __init__(self, action_length=0.5,enable_cnn_features=False):
+    def __init__(self, action_length=0.5,enable_cnn_features=False,cnn_extractor_model=None):
 
         # Inherent from Webots Robot Class: https://cyberbotics.com/doc/reference/robot
         self.experiment_supervisor = Supervisor()
@@ -159,15 +92,9 @@ class HamBot(Supervisor):
 
         # Enable CNN-based feature extraction if required
         self.enable_cnn_features = enable_cnn_features
+        self.cnn_extractor_model = cnn_extractor_model
         if self.enable_cnn_features:
-            # Load ResNet50 model and remove classification layers
-            self.cnn_feature_extractor = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
-            self.cnn_feature_extractor = torch.nn.Sequential(*list(self.cnn_feature_extractor.children())[:-2])
-            self.cnn_feature_extractor.eval()
-            self.preprocess = transforms.Compose([
-                transforms.ToTensor(),
-                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-            ])
+            self.cnn_feature_extractor = FeatureExtractor(self.cnn_extractor_model)
         else:
             self.cnn_feature_extractor = None
 
@@ -181,24 +108,6 @@ class HamBot(Supervisor):
             current_x, current_y, current_z = self.robot_translation_field.getSFVec3f()
             break
         return current_x, current_y, self.get_bearing()
-
-    def get_cnn_features(self, pov_image):
-        """
-        Process the robot's POV image using ResNet50 to extract CNN features.
-
-        Args:
-            pov_image (list): The robot's POV image as a 3D list of RGB values.
-
-        Returns:
-            np.ndarray: The extracted CNN features as a flattened numpy array.
-        """
-        # Convert the Webots image (list format) to a numpy array
-        pov_image_np = np.array(pov_image, dtype=np.uint8)
-        # Apply preprocessing transformations
-        pov_image_tensor = self.preprocess(pov_image_np).unsqueeze(0)  # Add batch dimension
-        with torch.no_grad():
-            features = self.cnn_feature_extractor(pov_image_tensor)
-        return features.flatten().numpy()
 
     def get_robot_pov_features(self, landmark_dictionary):
         """
@@ -215,7 +124,7 @@ class HamBot(Supervisor):
 
         # Extract CNN features if enabled
         if self.enable_cnn_features:
-            cnn_features = self.get_cnn_features(pov)
+            cnn_features = self.cnn_feature_extractor.get_cnn_features(pov)
         else:
             cnn_features = np.array([])  # Empty array if CNN features are not enabled
 
@@ -550,16 +459,21 @@ class HamBot(Supervisor):
 
         self.obstical_nodes = []
         self.boundry_wall_nodes = []
-        self.landmark_nodes = []
+        self.cylinder_landmark_nodes = []
+        self.tag_landmark_nodes = []
+
         for obstacles in self.maze.obstacles:
             self.children_field.importMFNodeFromString(-1, obstacles.get_webots_node_string())
             self.obstical_nodes.append(self.experiment_supervisor.getFromDef('Obstacle'))
         for boundary_wall in self.maze.boundary_walls:
             self.children_field.importMFNodeFromString(-1, boundary_wall.get_webots_node_string())
             self.boundry_wall_nodes.append(self.experiment_supervisor.getFromDef('Obstacle'))
-        for landmark in self.maze.landmarks:
-            self.children_field.importMFNodeFromString(-1, landmark.get_webots_node_string())
-            self.landmark_nodes.append(self.experiment_supervisor.getFromDef('Landmark'))
+        for cylinder_landmark in self.maze.cylinder_landmarks:
+            self.children_field.importMFNodeFromString(-1, cylinder_landmark.get_webots_node_string())
+            self.cylinder_landmark_nodes.append(self.experiment_supervisor.getFromDef('Landmark'))
+        for tag_landmark in self.maze.tag_landmarks:
+            self.children_field.importMFNodeFromString(-1, tag_landmark.get_webots_node_string())
+            self.tag_landmark_nodes.append(self.experiment_supervisor.getFromDef('RectangularPanel'))
 
     def reset_environment(self):
         self.teleport_robot(theta=math.pi / 2)
@@ -570,7 +484,7 @@ class HamBot(Supervisor):
         self.sensor_calibration()
 
     # Teleports the robot to the point (x,y,z)
-    def teleport_robot(self, x=0.0, y=0.0, z=0.0, theta=math.pi):
+    def teleport_robot(self, x=0.0, y=0.0, z=0.034, theta=math.pi):
         self.robot_translation_field.setSFVec3f([x, y, z])
         self.robot_rotation_field.setSFRotation([0, 0, 1, theta])
         self.sensor_calibration()

@@ -58,33 +58,41 @@ def parse_all_obsticles(xml_root):
     return pd.concat(valid_data_frames, ignore_index=True)
 
 
-def parse_landmark(xml_landmark):
-    data = [[float(xml_landmark.get(data)) for data in ['x', 'y', 'height', 'red', 'green', 'blue']]]
+def parse_cylinder_landmark(xml_cylinder_landmark):
+    data = [[float(xml_cylinder_landmark.get(data)) for data in ['x', 'y', 'height', 'red', 'green', 'blue']]]
     return pd.DataFrame(data=data, columns=['x', 'y', 'height', 'red', 'green', 'blue'])
 
-
-# def parse_all_landmarks(xml_root):
-#     return pd.concat(
-#         [pd.DataFrame(columns=['x', 'y', 'height', 'red', 'green', 'blue'])] + [parse_landmark(xml_landmark) for
-#                                                                                 xml_landmark in
-#                                                                                 xml_root.findall(
-#                                                                                     'landmark')]).reset_index(drop=True)
-
-
-def parse_all_landmarks(xml_root):
+def parse_all_cylinder_landmarks(xml_root):
     # Create a list of DataFrames for each landmark
-    landmark_dataframes = [parse_landmark(xml_landmark) for xml_landmark in xml_root.findall('landmark')]
+    cylinder_landmark_dataframes = [parse_cylinder_landmark(xml_landmark) for xml_landmark in xml_root.findall('cylinder_landmark')]
 
     # Filter out any empty or None DataFrames from parse_landmark results
-    landmark_dataframes = [df for df in landmark_dataframes if not df.empty]
+    cylinder_landmark_dataframes = [df for df in cylinder_landmark_dataframes if not df.empty]
 
     # If no landmarks are found, return an empty DataFrame with the specified columns
-    if not landmark_dataframes:
+    if not cylinder_landmark_dataframes:
         return pd.DataFrame(columns=['x', 'y', 'height', 'red', 'green', 'blue'])
 
     # Concatenate the landmark DataFrames and reset the index
-    return pd.concat(landmark_dataframes, ignore_index=True)
+    return pd.concat(cylinder_landmark_dataframes, ignore_index=True)
 
+def parse_tag_landmark(xml_cylinder_landmark):
+    data = [[float(xml_cylinder_landmark.get(data)) for data in ['x', 'y', 'theta', 'tag_id', 'height', 'width', 'red', 'green', 'blue']]]
+    return pd.DataFrame(data=data, columns=['x', 'y', 'theta', 'tag_id', 'height', 'width', 'red', 'green', 'blue'])
+
+def parse_all_tag_landmarks(xml_root):
+    # Create a list of DataFrames for each landmark
+    tag_landmark_dataframes = [parse_tag_landmark(xml_tag_landmark) for xml_tag_landmark in xml_root.findall('tag_landmark')]
+
+    # Filter out any empty or None DataFrames from parse_landmark results
+    tag_landmark_dataframes = [df for df in tag_landmark_dataframes if not df.empty]
+
+    # If no landmarks are found, return an empty DataFrame with the specified columns
+    if not tag_landmark_dataframes:
+        return pd.DataFrame(columns=['x', 'y', 'theta', 'tag_id', 'height', 'width', 'red', 'green', 'blue'])
+
+    # Concatenate the landmark DataFrames and reset the index
+    return pd.concat(tag_landmark_dataframes, ignore_index=True)
 def parse_position(xml_position):
     return pd.DataFrame(data=[[float(xml_position.get(p)) for p in ['x', 'y', 'theta']]], columns=['x', 'y', 'theta'])
 
@@ -115,9 +123,10 @@ def parse_maze(file):
     habituation_start_positions = parse_all_positions(root.find('habituationStartPositions'))
     walls = parse_all_obsticles(root)
     goals = parse_all_goals(root)
-    landmarks = parse_all_landmarks(root)
+    cylinder_landmarks = parse_all_cylinder_landmarks(root)
+    tag_landmarks = parse_all_tag_landmarks(root)
 
-    return walls, goals, experiment_start_positions, habituation_start_positions, landmarks
+    return walls, goals, experiment_start_positions, habituation_start_positions, cylinder_landmarks, tag_landmarks
 
 
 def parse_maze_for_wavefront(file):
@@ -127,6 +136,7 @@ def parse_maze_for_wavefront(file):
     starting_positions = pd.concat([experiment_start_positions, habituation_start_positions])
     walls = parse_all_obsticles(root)
     goals = parse_all_goals(root)
-    landmarks = parse_all_landmarks(root)
+    cylinder_landmarks = parse_all_cylinder_landmarks(root)
+    tag_landmarks = parse_all_tag_landmarks(root)
 
     return walls, goals, starting_positions

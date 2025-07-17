@@ -351,8 +351,8 @@ PROTO HamBot [
         rotation              0 0 1 0
         name                  "camera"
         fieldOfView           0.7854
-        width                 640
-        height                480
+        width                 224
+        height                224
         recognitionColors [
           1 0 0,
           0 1 0,
