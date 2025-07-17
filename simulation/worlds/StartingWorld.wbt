@@ -6,14 +6,15 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023a/project
 IMPORTABLE EXTERNPROTO "../protos/WorldObjects/Landmark.proto"
 IMPORTABLE EXTERNPROTO "../protos/WorldObjects/Obstacle.proto"
 EXTERNPROTO "../protos/HamBot/HamBot.proto"
+IMPORTABLE EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/traffic/protos/RectangularPanel.proto"
 
 WorldInfo {
-  ERP 1
+  ERP 0.8
   randomSeed 25
 }
 Viewpoint {
-  orientation -0.5773466778819134 0.5773466060513335 0.5773575235672647 2.0943301017787865
-  position -0.0005125671439752313 -0.0005865566987858239 18.105816252755975
+  orientation -0.5773455889172111 0.577345453238615 0.5773597652959 2.094323863445673
+  position -0.0005125671439749624 -0.0005865566987859339 18.105816252755975
 }
 TexturedBackground {
 }
@@ -25,6 +26,6 @@ Floor {
   tileSize 2 2
 }
 HamBot {
-  translation 0 0 -0.0014906773485103275
-  rotation 0.0 0.0 1.0 1.5700000123998166
+  translation 0 0 0.032
 }
+

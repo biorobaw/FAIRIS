@@ -4,14 +4,10 @@ import numpy as np
 from sklearn.cluster import KMeans, Birch
 from scipy.spatial.distance import cdist
 import matplotlib.pyplot as plt
+import math
+from fairis_tools.experiment_tools.loggers.visual_data_set import NavigationDataPoint
 os.chdir("../../..")
 print(os.getcwd())
-
-with open("data/VisualPlaceCellData/LM8_1000",'rb') as file:
-    visual_place_cell_data = pickle.load(file)
-
-
-n_clusters = 18  # You can change this based on how many clusters you expect
 
 # Function to plot clusters on the x, y plane
 def plot_clusters(xy_list, cluster_labels, name):
@@ -50,24 +46,36 @@ def plot_clusters(xy_list, cluster_labels, name):
     plt.close()
 
 
-def plot_clusters_by_subplots(xy_list, cluster_labels, name, n_clusters=8):
+def plot_clusters_by_subplots(xy_list, theta_list, cluster_labels, name, n_clusters=8):
     """
-    Plot the clusters on 8 subplots, one for each cluster, using the original (x, y) coordinates.
+    Plot the clusters on subplots, one for each cluster, using the original (x, y) coordinates
+    and their corresponding direction vectors.
 
     Args:
     - xy_list (list of tuples): The original x, y coordinates for each datapoint.
+    - theta_list (list of floats): The orientation (theta) in degrees for each datapoint.
     - cluster_labels (list of int): The cluster label for each datapoint.
-    - n_clusters (int): Number of clusters to plot (default is 8).
+    - name (str): The filename to save the plot.
+    - n_clusters (int): Number of clusters to plot.
     """
+    # Fixed number of columns
+    cols = 5
+    # Calculate the number of rows needed
+    rows = int(math.ceil(n_clusters / cols))
+
+    # Dynamically scale the figsize based on rows and columns
+    width_per_col = 6  # Adjust this for horizontal scaling
+    height_per_row = 6  # Adjust this for vertical scaling
+    figsize = (cols * width_per_col, rows * height_per_row)
+
     # Convert xy_list to NumPy arrays for easy filtering and plotting
     x_coords = np.array([x for x, y in xy_list])
     y_coords = np.array([y for x, y in xy_list])
-
-    # Create subplots (arranged as 4 rows, 2 columns for 8 clusters)
-    fig, axes = plt.subplots(3, 6, figsize=(30, 20))  # 4 rows, 2 columns for 8 clusters
+    theta_list = np.array([theta for theta in theta_list])
+    # Create subplots
+    fig, axes = plt.subplots(rows, cols, figsize=figsize)
     axes = axes.flatten()  # Flatten the axes array for easy indexing
 
-    # Plot each cluster on its respective subplot
     for cluster_id in range(n_clusters):
         # Get the indices of the datapoints that belong to the current cluster
         cluster_indices = np.where(cluster_labels == cluster_id)[0]
@@ -76,18 +84,36 @@ def plot_clusters_by_subplots(xy_list, cluster_labels, name, n_clusters=8):
         cluster_x = x_coords[cluster_indices]
         cluster_y = y_coords[cluster_indices]
 
+        # Extract theta values for the current cluster
+        cluster_theta = theta_list[cluster_indices]
+
+        # Compute dx and dy for each point in the current cluster
+        cluster_dx = 0.5 * np.cos(np.radians(cluster_theta))
+        cluster_dy = 0.5 * np.sin(np.radians(cluster_theta))
+
         # Scatter plot for the current cluster
-        axes[cluster_id].scatter(cluster_x, cluster_y, c=f'C{cluster_id}', alpha=0.7)
+        axes[cluster_id].scatter(cluster_x, cluster_y, c=f'C{cluster_id}', alpha=0.7, label='Points')
+
+        # Add quiver plot for vectors
+        axes[cluster_id].quiver(cluster_x, cluster_y, cluster_dx, cluster_dy, angles='xy', scale_units='xy', scale=1,
+                                color='black', alpha=0.7, label='Vectors')
 
         # Set subplot title and labels
         axes[cluster_id].set_title(f'Cluster {cluster_id}')
         axes[cluster_id].set_xlabel('X Coordinate')
         axes[cluster_id].set_ylabel('Y Coordinate')
+        axes[cluster_id].set_xlim(-3, 3)  # Set x-axis limits
+        axes[cluster_id].set_ylim(-3, 3)  # Set y-axis limits
+        axes[cluster_id].legend()
+
+    # Hide unused subplots (if n_clusters < len(axes))
+    for i in range(n_clusters, len(axes)):
+        axes[i].axis('off')
 
     # Adjust layout for better spacing
     plt.tight_layout()
 
-    # Show the plot
+    # Save the plot to the specified file
     fig.savefig(name)
     plt.close()
 
@@ -104,7 +130,7 @@ def format_data_for_clustering(data):
 
     return multimodal_feature_vectors, cnn_feature_vectors, xy_list, theta_list
 
-multimodal_feature_vectors,cnn_feature_vectors,xy_list,theta_list = format_data_for_clustering(visual_place_cell_data)
+
 def cluster_with_kmeans_and_save_centers(features_list, n_clusters, centers_save_path):
     """
     Perform KMeans clustering, calculate the maximum distance for each cluster,
@@ -152,86 +178,22 @@ def cluster_with_kmeans_and_save_centers(features_list, n_clusters, centers_save
 
     return cluster_labels
 
-centers_save_path = "data/VisualPlaceCellData/VisualPlaceCellClusters/multimodal_kmeans_centers"
-cluster_labels = cluster_with_kmeans_and_save_centers(multimodal_feature_vectors, n_clusters, centers_save_path)
+with open("data/VisualPlaceCellData/LM8_Training",'rb') as file:
+    visual_place_cell_data = pickle.load(file,encoding='latin1')
 
-# Now plot the clusters
-plot_clusters(xy_list, cluster_labels, "data/figures/Clustering/multi_model_knn.png")
-plot_clusters_by_subplots(xy_list, cluster_labels, "data/figures/Clustering/multimodel_knn_clusters.png", n_clusters=n_clusters)
+multimodal_feature_vectors,cnn_feature_vectors,xy_list,theta_list = format_data_for_clustering(visual_place_cell_data)
+# n_clusters = [50,100,250,500]  # You can change this based on how many clusters you expect
+n_clusters = [100]
+for n_cluster in n_clusters:
 
-centers_save_path = "data/VisualPlaceCellData/VisualPlaceCellClusters/cnn_kmeans_centers"
-cluster_labels = cluster_with_kmeans_and_save_centers(cnn_feature_vectors, n_clusters, centers_save_path)
+    centers_save_path = "data/VisualPlaceCellData/VisualPlaceCellClusters/multimodal_kmeans_"+str(n_cluster)+"centers_walls"
+    cluster_labels = cluster_with_kmeans_and_save_centers(multimodal_feature_vectors, n_cluster, centers_save_path)
 
-# Now plot the clusters
-plot_clusters(xy_list, cluster_labels, "data/figures/Clustering/cnn_knn.png")
-plot_clusters_by_subplots(xy_list, cluster_labels, "data/figures/Clustering/cnn_knn_clusters.png", n_clusters=n_clusters)
+    # Now plot the clusters
+    plot_clusters_by_subplots(xy_list, theta_list, cluster_labels, "data/figures/Clustering/multimodel_knn_"+str(n_cluster)+"clusters_walls.png", n_clusters=n_cluster)
 
-# Function to perform Birch clustering and save the model and cluster centers
-def cluster_with_birch_and_save_centers(features_list, n_clusters, model_save_path, centers_save_path):
-    """
-    Perform Birch clustering, approximate the cluster centers by averaging the points in each cluster,
-    calculate the maximum distance of points to their cluster center, and save the centers with distances.
-
-    Args:
-    - features_list (list of numpy arrays): The feature vectors extracted from the images.
-    - n_clusters (int): The number of clusters to form.
-    - model_save_path (str): Path to save the trained Birch model using pickle.
-    - centers_save_path (str): Path to save the cluster centers and max distances as a Python list using pickle.
-
-    Returns:
-    - cluster_labels (list of int): The cluster label for each datapoint.
-    - cluster_centers (numpy array): The approximate centers of the final clusters.
-    """
-    features_array = np.array(features_list)
-
-    # Perform Birch clustering
-    birch = Birch(n_clusters=n_clusters)
-    cluster_labels = birch.fit_predict(features_array)
-
-    # Save the Birch model
-    with open(model_save_path, 'wb') as f:
-        pickle.dump(birch, f)
-
-    # List to store [center, max_distance] for each cluster
-    cluster_data = []
-
-    # For each final cluster, calculate the center and max distance
-    for cluster_id in range(n_clusters):
-        # Get the feature vectors for the points in this cluster
-        cluster_points = features_array[cluster_labels == cluster_id]
-
-        # Compute the center by averaging the points in this cluster
-        if len(cluster_points) > 0:
-            cluster_center = np.mean(cluster_points, axis=0)
-        else:
-            # In case a cluster has no points (unlikely), set a zero vector
-            cluster_center = np.zeros(features_array.shape[1])
-
-        # Calculate distances from each point to the cluster center
-        distances = cdist(cluster_points, [cluster_center], metric='euclidean').flatten()
-
-        # Find the maximum distance
-        max_distance = distances.max() if len(distances) > 0 else 0
-
-        # Append the center and max distance as a pair to cluster_data
-        cluster_data.append([cluster_center.tolist(), max_distance])
-
-    # Save cluster_data (centers and max distances) using pickle
-    with open(centers_save_path, 'wb') as f:
-        pickle.dump(cluster_data, f)
-
-    return cluster_labels
-
-centers_save_path = "data/VisualPlaceCellData/VisualPlaceCellClusters/multimodal_birch_centers"
-cluster_labels = cluster_with_kmeans_and_save_centers(multimodal_feature_vectors, n_clusters, centers_save_path)
-
-# Now plot the clusters
-plot_clusters(xy_list, cluster_labels, "data/figures/Clustering/multi_model_birch.png")
-plot_clusters_by_subplots(xy_list, cluster_labels, "data/figures/Clustering/multimodel_birch_clusters.png", n_clusters=n_clusters)
-
-centers_save_path = "data/VisualPlaceCellData/VisualPlaceCellClusters/cnn_birch_centers"
-cluster_labels = cluster_with_kmeans_and_save_centers(cnn_feature_vectors, n_clusters, centers_save_path)
-
-# Now plot the clusters
-plot_clusters(xy_list, cluster_labels, "data/figures/Clustering/cnn_birch.png")
-plot_clusters_by_subplots(xy_list, cluster_labels, "data/figures/Clustering/cnn_birch_clusters.png", n_clusters=n_clusters)
+    # centers_save_path = "data/VisualPlaceCellData/VisualPlaceCellClusters/cnn_kmeans_"+str(n_cluster)+"centers"
+    # cluster_labels = cluster_with_kmeans_and_save_centers(cnn_feature_vectors, n_cluster, centers_save_path)
+    #
+    # # Now plot the clusters
+    # plot_clusters_by_subplots(xy_list, theta_list, cluster_labels, "data/figures/Clustering/cnn_knn_"+str(n_cluster)+"clusters.png", n_clusters=n_cluster)
